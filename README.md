@@ -20,10 +20,21 @@ Or copy `.env.example` to `.env` and export the variable yourself. `.env` is git
 - `pip install -r requirements.txt`
 - `ffmpeg` and `ffprobe` on `PATH` (interview merge / video mux)
 
+## Script-first interviews (`open_tts`)
+
+New shows are YAML + character ids (no forked `interviewN.py`):
+
+```powershell
+python -m open_tts render interviews/partner-smart-catalogue.yaml
+```
+
+See `docs/build-and-test-plan-script-first-interview-renderer.md`. Audiotour JSON (`tts_play.py`) stays on its own path.
+
 ## Scripts
 
 | Script | Purpose |
 |---|---|
+| `python -m open_tts render` | YAML script → audio, SRT, timings, sprite-sheet video |
 | `tts_play.py` | Fill audiotour JSON with Grok TTS (`python tts_play.py categories-widget-audiotour.json`) |
 | `test.py` | One-shot Eve voice check against `https://api.x.ai/v1/tts` |
 | `interview1/interview.py` | Sentence-level interview audio → `interview_audio2/` |

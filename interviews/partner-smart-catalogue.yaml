@@ -1,0 +1,50 @@
+title: Partner Smart Catalogue (Leo / Eve)
+characters:
+  host: leo
+  guest: eve
+layout:
+  dual_start_turns: 4
+  dual_end_turns: 5
+script:
+  - { speaker: leo, text: "Welcome everyone." }
+  - { speaker: leo, text: "Today I'm joined by Eve from Club Madeira to talk about their Smart Catalogue." }
+  - { speaker: leo, text: "Eve, thank you for joining us." }
+  - { speaker: eve, text: "Thank you Leo, it's great to be here." }
+  - { speaker: leo, text: "Let's start with the basics." }
+  - { speaker: leo, text: "What exactly is the Smart Catalogue?" }
+  - { speaker: eve, text: "The Smart Catalogue by Club Madeira is a B2B, invite-only, white-label AI-powered fundraising engine." }
+  - { speaker: eve, text: "It's designed specifically for professional partners — website designers, digital agencies, consultants, and service providers — who work with clubs and community groups." }
+  - { speaker: eve, text: "These partners can embed a fully white-labelled Smart Catalogue into their clients’ websites." }
+  - { speaker: eve, text: "The AI automatically creates and manages a smart online shop with products that members are likely to love." }
+  - { speaker: eve, text: "When members shop, the club earns commission, the partner gets recurring revenue, and merchants get targeted exposure — all with almost no extra work." }
+  - { speaker: leo, text: "Who is this platform actually for?" }
+  - { speaker: eve, text: "It's exclusively for approved professional partners." }
+  - { speaker: eve, text: "Clubs don't buy it directly." }
+  - { speaker: eve, text: "Partners control the client relationship, branding, pricing, and support." }
+  - { speaker: eve, text: "There are no monthly platform fees, no stock to manage, and everything can be handled from a dashboard or even a smartphone app." }
+  - { speaker: leo, text: "How does the AI actually choose which products to show?" }
+  - { speaker: eve, text: "The AI uses a practical, interest-based curation system." }
+  - { speaker: eve, text: "Club admins pick their group's main interests and categories through the smartphone app — things like model flying, scouting, sports, crafts, parenting, etc." }
+  - { speaker: eve, text: "The AI then pulls products from trusted merchant feeds and APIs, matches them to those interests, and scores them for relevance." }
+  - { speaker: eve, text: "The catalogue is living — it updates daily, adding new products and removing ones that are no longer relevant." }
+  - { speaker: leo, text: "During some conversations, your team mentioned keeping products in a 'Vault'." }
+  - { speaker: leo, text: "What is that exactly?" }
+  - { speaker: eve, text: "The Vault is our internal name for the central product database." }
+  - { speaker: eve, text: "We don't hold any physical stock — this is a pure affiliate model." }
+  - { speaker: eve, text: "Merchants connect their stores via APIs, and we pull product data into our system." }
+  - { speaker: eve, text: "It's essentially a large, well-organized database of normalised product information that our AI can search and curate from efficiently." }
+  - { speaker: leo, text: "Your salesman described this Vault as very rare and special." }
+  - { speaker: leo, text: "Is a database really that unusual?" }
+  - { speaker: eve, text: "Databases themselves are very common — almost every modern website uses one." }
+  - { speaker: eve, text: "What makes our system special is not the database, but how we combine it with powerful AI to automatically build and maintain highly relevant catalogues for thousands of different communities with almost no manual effort." }
+  - { speaker: eve, text: "That level of smart automation, especially in the club and community fundraising space, is quite rare." }
+  - { speaker: leo, text: "So would you say the salesman was overselling it a bit?" }
+  - { speaker: eve, text: "There's always a bit of sales enthusiasm!", cue: laugh }
+  - { speaker: eve, text: "The core technology — a database plus AI curation — isn't unique in the broader e-commerce world." }
+  - { speaker: eve, text: "But the specific combination we’ve built: white-label for agencies, smartphone-first admin, fully automated curation, zero stock, and strong focus on community fundraising, is genuinely valuable and unusual in this niche." }
+  - { speaker: eve, text: "We prefer to focus on the real benefits rather than hype." }
+  - { speaker: leo, text: "Thank you Eve." }
+  - { speaker: leo, text: "This has been very insightful." }
+  - { speaker: leo, text: "I'm excited to see how the Smart Catalogue develops." }
+  - { speaker: eve, text: "Thank you Leo." }
+  - { speaker: eve, text: "It was a pleasure." }

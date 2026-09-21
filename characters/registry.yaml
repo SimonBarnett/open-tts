@@ -1,0 +1,6 @@
+leo:
+  voice_id: leo
+  sheet: characters/leo.png
+eve:
+  voice_id: eve
+  sheet: characters/eve.png
