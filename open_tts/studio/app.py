@@ -231,6 +231,9 @@ def run_edit_app(project: StudioProject) -> int:
             self.field_text.setText(ln["text"])
             cue = str(ln.get("cue") or "")
             ci = self.field_cue.findText(cue)
+            if ci < 0 and cue:
+                self.field_cue.addItem(cue)
+                ci = self.field_cue.findText(cue)
             self.field_cue.setCurrentIndex(ci if ci >= 0 else 0)
             self.field_speaker.blockSignals(False)
             self.field_text.blockSignals(False)
@@ -311,10 +314,12 @@ def run_edit_app(project: StudioProject) -> int:
             prev = self._baseline.get(self._current_line_id)
             speaker, text, cue = self._apply_inspector_to_data()
             save_interview(self.data, self.project.yaml_path)
-            if prev and prev[1] != text:
-                old_sp = prev[0]
+            if prev and (prev[0] != speaker or prev[1] != text):
                 invalidate_sentence_audio(
-                    self.project.output_dir, self._current_line_id, old_sp, speaker
+                    self.project.output_dir,
+                    self._current_line_id,
+                    prev[0],
+                    speaker,
                 )
             self._rebuild_baseline()
             self._dirty = False

@@ -1,4 +1,6 @@
+import tempfile
 import unittest
+from pathlib import Path
 
 from open_tts.studio.dirty import (
     block_index_for_line,
@@ -72,6 +74,40 @@ class TestDirtyBlocks(unittest.TestCase):
 
 
 class TestResolveProject(unittest.TestCase):
+    def test_yaml_path_resolves_default_output_dir(self):
+        from open_tts.studio.project import resolve_edit_target
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            yaml_path = root / "interviews" / "demo.yaml"
+            yaml_path.parent.mkdir(parents=True)
+            yaml_path.write_text(
+                "title: Demo\ncharacters: {host: leo, guest: eve}\nscript: []\n",
+                encoding="utf-8",
+            )
+            proj = resolve_edit_target(yaml_path)
+            self.assertEqual(proj.yaml_path.resolve(), yaml_path.resolve())
+            self.assertEqual(
+                proj.output_dir.resolve(),
+                (root / "interviews" / "output" / "demo").resolve(),
+            )
+
+    def test_yaml_path_resolves_output_dir(self):
+        from pathlib import Path
+
+        from open_tts.studio.project import resolve_edit_target
+
+        root = Path(__file__).resolve().parent.parent
+        yaml = root / "interviews" / "partner-smart-catalogue.yaml"
+        if not yaml.is_file():
+            self.skipTest("partner-smart-catalogue.yaml not present")
+        proj = resolve_edit_target(yaml)
+        self.assertEqual(proj.yaml_path.resolve(), yaml.resolve())
+        self.assertEqual(
+            proj.output_dir.resolve(),
+            (root / "interviews" / "output" / "partner-smart-catalogue").resolve(),
+        )
+
     def test_output_dir_to_yaml(self):
         from pathlib import Path
 

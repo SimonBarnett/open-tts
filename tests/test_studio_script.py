@@ -28,6 +28,22 @@ class TestScriptSave(unittest.TestCase):
         self.assertEqual(loaded["script"][1]["cue"], "smile")
 
 
+class TestInvalidateSentenceAudio(unittest.TestCase):
+    def test_speaker_change_removes_both_caches(self):
+        from open_tts.render import invalidate_sentence_audio, sentence_audio_paths
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "sentences").mkdir()
+            for sp in ("leo", "eve"):
+                mp3, wav = sentence_audio_paths(out, sp, 1)
+                mp3.write_bytes(b"mp3")
+                wav.write_bytes(b"wav")
+            invalidate_sentence_audio(out, 1, "leo", "eve")
+            self.assertFalse(sentence_audio_paths(out, "leo", 1)[0].is_file())
+            self.assertFalse(sentence_audio_paths(out, "eve", 1)[0].is_file())
+
+
 class TestTtsReuse(unittest.TestCase):
     def test_existing_mp3_skips_tts(self):
         from open_tts.tts import ensure_sentence_audio
