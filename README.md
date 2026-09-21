@@ -20,6 +20,10 @@ Or copy `.env.example` to `.env` and export the variable yourself. `.env` is git
 - `pip install -r requirements.txt`
 - `ffmpeg` and `ffprobe` on `PATH` (interview merge / video mux)
 
+## Agents
+
+Repo-local playbooks for Grok Bot, `grok.exe --rules`, and Cursor git workers live under [`.grok/skills/`](.grok/skills/). Start with **[open-tts-drive](.grok/skills/open-tts-drive/SKILL.md)** for render, studio, projects, audiotour JSON, characters, and headless tests.
+
 ## Script-first interviews (`open_tts`)
 
 New shows are YAML + character ids (no forked `interviewN.py`):
