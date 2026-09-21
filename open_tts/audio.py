@@ -7,6 +7,8 @@ import subprocess
 import wave
 from pathlib import Path
 
+from open_tts.visemes import attach_phones_to_segments
+
 SAMPLE_RATE = 24000
 SAMPLE_WIDTH = 2  # 16-bit PCM
 CHANNELS = 1
@@ -162,6 +164,8 @@ def build_full_interview(
             gap = silence_short if pause == PAUSE_BETWEEN_SENTENCES_MS else silence_long
             concat_list.append(gap)
             cursor_sec += pause / 1000.0
+
+    attach_phones_to_segments(segments)
 
     full_wav = work_dir / "full_interview.wav"
     concat_wavs(concat_list, full_wav)

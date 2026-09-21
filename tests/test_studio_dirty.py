@@ -110,6 +110,24 @@ class TestResolveProject(unittest.TestCase):
                 (root / "interviews" / "output" / "partner-smart-catalogue").resolve(),
             )
 
+    def test_project_folder_resolves_interview_yaml(self):
+        from open_tts.project import INTERVIEW_YAML
+        from open_tts.studio.project import resolve_edit_target
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            proj = root / "projects" / "vault-technical"
+            proj.mkdir(parents=True)
+            yaml_path = proj / INTERVIEW_YAML
+            yaml_path.write_text(
+                "title: T\ncharacters: {host: leo, guest: eve}\nscript: []\n",
+                encoding="utf-8",
+            )
+            (proj / "timings.json").write_text("[]", encoding="utf-8")
+            resolved = resolve_edit_target(proj)
+            self.assertEqual(resolved.yaml_path.resolve(), yaml_path.resolve())
+            self.assertEqual(resolved.output_dir.resolve(), proj.resolve())
+
     def test_output_dir_under_interviews_output_finds_yaml(self):
         from open_tts.studio.project import resolve_edit_target
 

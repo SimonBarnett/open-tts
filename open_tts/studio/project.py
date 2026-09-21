@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from open_tts.render import default_output_dir
+from open_tts.project import INTERVIEW_YAML, default_output_dir, is_project_directory
 from open_tts.script import layout_options, load_interview, normalized_lines
 
 
@@ -52,6 +52,10 @@ def resolve_edit_target(path: Path) -> StudioProject:
 
     if not path.is_dir():
         raise ValueError(f"Not a YAML file or output directory: {path}")
+
+    if is_project_directory(path):
+        yaml_path = path / INTERVIEW_YAML
+        return StudioProject(yaml_path=yaml_path, output_dir=path)
 
     timings = path / "timings.json"
     if not timings.is_file():

@@ -11,7 +11,8 @@ from PIL import Image
 
 from open_tts.audio import media_duration
 from open_tts.characters import load_registry, sheet_for
-from open_tts.sprite import EXPRESSION_COL, CharacterSheet, viseme_sequence_for_text
+from open_tts.sprite import EXPRESSION_COL, CharacterSheet
+from open_tts.visemes import phones_for_line, sheet_viseme, viseme_at_time
 
 
 def run(cmd: list) -> None:
@@ -50,20 +51,24 @@ _PAUSE_LINE = {"id": 0, "text": "", "cue": "pause"}
 
 def _frame_for_line(sheet: CharacterSheet, line: dict, t_in_line: float) -> Path:
     cue = (line.get("cue") or "").lower()
+    cache_tag: str
     if cue in EXPRESSION_COL:
         frames = sheet.expression_frames(cue)
         idx = int(t_in_line * 8) % len(frames)
         img = frames[idx]
+        cache_tag = f"{cue}:{idx}"
     elif cue == "pause":
-        idx = 0
         img = sheet.pause()
+        cache_tag = "pause"
     else:
-        visemes = viseme_sequence_for_text(line["text"])
-        idx = int(t_in_line * 6) % len(visemes)
-        img = sheet.viseme(visemes[idx])
+        phones = phones_for_line(line)
+        vis = viseme_at_time(phones, t_in_line)
+        vis_key = sheet_viseme(vis)
+        img = sheet.viseme(vis_key)
+        cache_tag = f"{vis_key}:{round(t_in_line, 4)}"
     tmp = Path("_frame_cache")
     tmp.mkdir(exist_ok=True)
-    out = tmp / f"f_{hash((line['id'], idx, cue)) & 0xfffffff}.png"
+    out = tmp / f"f_{hash((line['id'], cache_tag, cue)) & 0xfffffff}.png"
     if not out.is_file():
         img.save(out)
     return out
