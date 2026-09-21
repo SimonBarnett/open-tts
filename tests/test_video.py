@@ -13,22 +13,25 @@ from open_tts.video import (
 
 
 class TestExpressionCues(unittest.TestCase):
-    def test_smile_cue_uses_smile_cell_not_vowel(self):
+    def test_expression_cues_use_expression_cells_not_vowels(self):
+        cases = (
+            ("smile", "Thank you Leo, it's great to be here."),
+            ("concern", "Unfortunately we might oversell that risk."),
+            ("think", "Well, technically the database vault matters."),
+            ("listen", ""),
+        )
         with tempfile.TemporaryDirectory() as tmp:
             sheet_path = Path(tmp) / "eve.png"
             ensure_placeholder_sheet(sheet_path, "eve")
             sheet = CharacterSheet(sheet_path)
-            line = {
-                "id": 3,
-                "text": "Thank you Leo, it's great to be here.",
-                "cue": "smile",
-            }
-            frame_path = _frame_for_line(sheet, line, 0.0)
-            expr_px = sheet.expression_frames("smile")[0].getpixel((0, 0))
             vowel_px = sheet.viseme("e").getpixel((0, 0))
-            actual = Image.open(frame_path).getpixel((0, 0))
-            self.assertEqual(actual, expr_px)
-            self.assertNotEqual(actual, vowel_px)
+            for cue, text in cases:
+                line = {"id": 1, "text": text, "cue": cue}
+                frame_path = _frame_for_line(sheet, line, 0.0)
+                expr_px = sheet.expression_frames(cue)[0].getpixel((0, 0))
+                actual = Image.open(frame_path).getpixel((0, 0))
+                self.assertEqual(actual, expr_px, msg=cue)
+                self.assertNotEqual(actual, vowel_px, msg=cue)
 
 
 class TestPauseCue(unittest.TestCase):
