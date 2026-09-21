@@ -1,0 +1,55 @@
+title: White-Label Partner (Leo / Eve)
+characters:
+  host: leo
+  guest: eve
+layout:
+  dual_start_turns: 4
+  dual_end_turns: 5
+script:
+  - { speaker: leo, text: "Welcome back everyone." }
+  - { speaker: leo, text: "Today I'm joined once again by Eve from Club Madeira." }
+  - { speaker: leo, text: "Eve, thank you for being here." }
+  - { speaker: eve, text: "Always a pleasure, Leo." }
+  - { speaker: leo, text: "So, if I wanted to become a partner — say I'm a website designer or digital agency working with clubs — walk me through what that would look like, especially the white-label side." }
+  - { speaker: eve, text: "That's the part partners love most." }
+  - { speaker: eve, text: "The Smart Catalogue is built from the ground up as a fully white-label product." }
+  - { speaker: eve, text: "Clubs never see Club Madeira branding." }
+  - { speaker: eve, text: "When you embed it, the entire experience appears under your client's brand, on their domain, with their colours, logo and voice." }
+  - { speaker: eve, text: "From the member's point of view it simply feels like the club's own professional online shop." }
+  - { speaker: eve, text: "That's a huge selling point for agencies." }
+  - { speaker: leo, text: "So I control the look and feel completely?" }
+  - { speaker: eve, text: "Completely." }
+  - { speaker: eve, text: "You control the branding, the pricing you charge the club, the level of support you offer, and the ongoing client relationship." }
+  - { speaker: eve, text: "We stay in the background." }
+  - { speaker: eve, text: "You deliver a white-labelled Progressive Web App experience that members can even install on their phones — still fully branded as the club." }
+  - { speaker: leo, text: "Can I modify the code myself if I need to?" }
+  - { speaker: eve, text: "Yes." }
+  - { speaker: eve, text: "The complete partner integration code is available under the MIT open-source licence." }
+  - { speaker: eve, text: "You're free to use it, modify it, and extend it however you need." }
+  - { speaker: eve, text: "That means you can adapt the widgets, adjust the PWA behaviour, or build additional features on top without asking permission or paying extra." }
+  - { speaker: eve, text: "It's designed so agencies can properly own the technical delivery for their clients." }
+  - { speaker: leo, text: "That makes it feel like a premium service I'm providing, not a locked-down third-party tool." }
+  - { speaker: eve, text: "Exactly." }
+  - { speaker: eve, text: "You're not reselling someone else's platform." }
+  - { speaker: eve, text: "You're embedding a powerful fundraising engine that becomes part of the club's own digital presence." }
+  - { speaker: eve, text: "And because it's white-label and open source under MIT, you can position and customise it however you like." }
+  - { speaker: leo, text: "How does the commercial side work in that model?" }
+  - { speaker: eve, text: "When members shop, the club earns commission, you earn recurring revenue, and merchants get targeted exposure." }
+  - { speaker: eve, text: "There are no monthly platform fees." }
+  - { speaker: eve, text: "Your technical work is the clean integration, branding, and any modifications you choose to make." }
+  - { speaker: eve, text: "The ongoing commercial opportunity is driving engagement." }
+  - { speaker: eve, text: "We expect each active catalogue to generate around two thousand clicks a month." }
+  - { speaker: eve, text: "That comes from the marketing, SEO and promotion that you bill the club for as a paid service." }
+  - { speaker: leo, text: "So the white-label nature plus the MIT licence lets me own the whole relationship and charge properly for the value." }
+  - { speaker: eve, text: "That's the model." }
+  - { speaker: eve, text: "You bring the clubs, the websites and the promotional expertise." }
+  - { speaker: eve, text: "We provide the AI, the product vault and the infrastructure — all invisible to the end user." }
+  - { speaker: eve, text: "It turns a simple website add-on into a high-value, recurring service under your brand." }
+  - { speaker: leo, text: "That's very clear." }
+  - { speaker: leo, text: "What's the practical first step if I wanted to start?" }
+  - { speaker: eve, text: "You become an approved partner, receive your affiliate code and the full partner package — including the MIT-licensed integration code — then begin embedding the white-label catalogue for your existing club clients." }
+  - { speaker: eve, text: "From day one it looks and feels like something you built for them." }
+  - { speaker: leo, text: "Thank you, Eve." }
+  - { speaker: leo, text: "That's extremely helpful." }
+  - { speaker: eve, text: "Thank you, Leo." }
+  - { speaker: eve, text: "Happy to go deeper any time." }

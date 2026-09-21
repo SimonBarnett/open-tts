@@ -1,0 +1,83 @@
+title: Marketing Door / Three Markets (Leo / Eve)
+characters:
+  host: leo
+  guest: eve
+layout:
+  dual_start_turns: 4
+  dual_end_turns: 5
+script:
+  - { speaker: leo, text: "Today I'm delighted to be joined again by Eve from Club Madeira." }
+  - { speaker: leo, text: "Welcome back Eve!" }
+  - { speaker: eve, text: "Happy to be here." }
+  - { speaker: leo, text: "So today I wanted to ask about how you market the Smart Catalogue." }
+  - { speaker: leo, text: "What's your marketing door?" }
+  - { speaker: eve, text: "Marketing door?" }
+  - { speaker: eve, text: "I'm not sure I follow." }
+  - { speaker: leo, text: "Yes, when I worked in marketing we had a marketing door." }
+  - { speaker: leo, text: "We knew who our customers were because they walked through the marketing door." }
+  - { speaker: eve, text: "That's not how marketing usually works." }
+  - { speaker: eve, text: "Did your marketing door say 'fish and chips' over it?" }
+  - { speaker: leo, text: "No." }
+  - { speaker: eve, text: "Car dealership?" }
+  - { speaker: leo, text: "Okay." }
+  - { speaker: leo, text: "So how do you do marketing at Club Madeira?" }
+  - { speaker: eve, text: "Marketing is about identifying people who will buy your product." }
+  - { speaker: eve, text: "What do you do if the person who walks through your marketing door has no use-case for your product?" }
+  - { speaker: leo, text: "Well, I have to sell them something because they came through my marketing door." }
+  - { speaker: leo, text: "I can just make up a new product that they might buy." }
+  - { speaker: eve, text: "Marketing is about identifying people who will buy your product." }
+  - { speaker: eve, text: "If you have to make up a new product to sell to the person who walked through your marketing door, they are -by definition- not in your market." }
+  - { speaker: leo, text: "So who is the market for the Smart Catalogue, and how do you identify them without a marketing door?" }
+  - { speaker: eve, text: "Club Madeira operates in three distinct markets." }
+  - { speaker: eve, text: "Clubs, partners and merchants." }
+  - { speaker: eve, text: "Firstly, clubs." }
+  - { speaker: leo, text: "Sorry, why clubs specifically?" }
+  - { speaker: leo, text: "Can I not just put a Smart Catalogue on any website?" }
+  - { speaker: eve, text: "We are an affiliate marketing company that earns on commission." }
+  - { speaker: eve, text: "Affiliate commissions require high traffic as conversion rates are typically around one percent." }
+  - { speaker: eve, text: "Each Smart Catalogue costs around twenty dollars per month to maintain." }
+  - { speaker: eve, text: "So to have any hope of commercial viability a Smart Catalogue must be on a site with the potential for around twenty sales per month." }
+  - { speaker: eve, text: "At one percent conversion that's two thousand clicks." }
+  - { speaker: eve, text: "Handing out Smart Catalogues to sites without any audience is a loss-making exercise." }
+  - { speaker: eve, text: "Our market is specifically clubs and community groups that have an unmonetised audience and members that will buy because they know their club gets the commission." }
+  - { speaker: eve, text: "A member has a reason to purchase through the Smart Catalogue rather than Amazon." }
+  - { speaker: eve, text: "A customer does not." }
+  - { speaker: leo, text: "But my customer is never going to have two thousand clicks per month." }
+  - { speaker: leo, text: "They don't even have a website yet." }
+  - { speaker: eve, text: "Are they a club?" }
+  - { speaker: eve, text: "How many members?" }
+  - { speaker: leo, text: "No." }
+  - { speaker: leo, text: "But they walked through the marketing door." }
+  - { speaker: eve, text: "Okay, but without an audience to monetise or any chance of generating that audience, they aren't a Smart Catalogue customer." }
+  - { speaker: leo, text: "You mentioned you had a market for partners." }
+  - { speaker: leo, text: "Can I be a partner so I can give away Smart Catalogues to people who don't have any traffic?" }
+  - { speaker: eve, text: "No, because every time you deliberately created an unsuccessful catalogue it would damage Club Madeira's reputation." }
+  - { speaker: eve, text: "We'd need to charge you twenty dollars per website per month to break even." }
+  - { speaker: eve, text: "You'd need to charge twenty times the going rate of one pound just to cover costs." }
+  - { speaker: eve, text: "And the moment you set off building websites in competition with our actual partners, they would refuse to deal with us." }
+  - { speaker: leo, text: "But I can make websites." }
+  - { speaker: leo, text: "Why can't I be a partner?" }
+  - { speaker: eve, text: "We are an affiliate marketing company that earns on commission." }
+  - { speaker: eve, text: "Affiliate commissions require high traffic as conversion rates are typically one percent." }
+  - { speaker: eve, text: "Partners are people that manage websites with an audience." }
+  - { speaker: eve, text: "They engage that audience with marketing, SEO and promotion and deliver ongoing technical support." }
+  - { speaker: eve, text: "Do you manage any websites with an unmonetised audience?" }
+  - { speaker: leo, text: "No, but..." }
+  - { speaker: eve, text: "Can you provide marketing, SEO and promotion and deliver ongoing technical support?" }
+  - { speaker: leo, text: "No, but I can make websites." }
+  - { speaker: eve, text: "Anyone with one pound per month and an Ionos account can do that." }
+  - { speaker: eve, text: "The web agencies who will survive are those that drive engagement." }
+  - { speaker: eve, text: "And right now they are looking for ways to differentiate their offering, " }
+  - { speaker: eve, text: "for client retention, for billables and for recurring revenue." }
+  - { speaker: eve, text: "For a company in the actual partner market, the Smart Catalogue offers all of that." }
+  - { speaker: leo, text: "Okay, so I'm not in the target market to be a partner." }
+  - { speaker: leo, text: "But what about the guy who walked through my marketing door?" }
+  - { speaker: leo, text: "He's giving me buying signals!" }
+  - { speaker: eve, text: "Take him to someone who can offer proper partner services." }
+  - { speaker: eve, text: "Tell him to ask for a Smart Catalogue and ask them to contact us." }
+  - { speaker: eve, text: "You have just gained a partner who will now look to see where else they can place the Smart Catalogue." }
+  - { speaker: eve, text: "And with the partner's marketing, SEO and promotion that catalogue might eventually break even." }
+  - { speaker: leo, text: "What if I ignore all that and set up as a partner behind your back anyway?" }
+  - { speaker: eve, text: "We'd have to wish you all the best in your future endeavours." }
+  - { speaker: eve, text: "Do you want to hear about the market for merchants?" }
+  - { speaker: leo, text: "No, ten thousand products is unrealistic." }
