@@ -26,6 +26,23 @@ from open_tts.project import (
 from open_tts.video import build_video
 
 
+def sentence_audio_paths(output_dir: Path, speaker: str, line_index: int) -> tuple[Path, Path]:
+    """1-based line_index → (mp3, wav) under output_dir/sentences."""
+    speech_dir = output_dir / "sentences"
+    stem = f"{speaker}_{line_index:03d}"
+    return speech_dir / f"{stem}.mp3", speech_dir / f"{stem}.wav"
+
+
+def invalidate_sentence_audio(
+    output_dir: Path, line_index: int, *speakers: str
+) -> None:
+    """Remove cached sentence audio for 1-based line_index (all speakers given)."""
+    for sp in speakers:
+        mp3, wav = sentence_audio_paths(output_dir, sp, line_index)
+        mp3.unlink(missing_ok=True)
+        wav.unlink(missing_ok=True)
+
+
 def render_interview(
     yaml_path: Path,
     output_dir: Path | None = None,
@@ -99,3 +116,35 @@ def render_interview(
         touch_last_render(out)
 
     return out
+
+
+def render_line(
+    yaml_path: Path,
+    output_dir: Path | None,
+    line_id: int,
+    *,
+    previous_speaker: str | None = None,
+) -> Path:
+    """Re-render after a single-line edit (sentence cache cleared on Save when text/speaker change)."""
+    out = output_dir or default_output_dir(yaml_path)
+    data = load_interview(yaml_path)
+    lines = normalized_lines(data)
+    if line_id < 1 or line_id > len(lines):
+        raise ValueError(f"Invalid line id {line_id}")
+    if previous_speaker:
+        line = lines[line_id - 1]
+        if previous_speaker != line["speaker"]:
+            invalidate_sentence_audio(out, line_id, previous_speaker, line["speaker"])
+    return render_interview(yaml_path, output_dir=out, skip_tts=False, video=True)
+
+
+def render_cues_only(yaml_path: Path, output_dir: Path | None = None) -> Path:
+    return render_interview(
+        yaml_path, output_dir=output_dir, skip_tts=True, video=True
+    )
+
+
+def render_full(yaml_path: Path, output_dir: Path | None = None) -> Path:
+    return render_interview(
+        yaml_path, output_dir=output_dir, skip_tts=False, video=True
+    )

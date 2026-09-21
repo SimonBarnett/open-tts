@@ -28,6 +28,13 @@ New shows are YAML + character ids (no forked `interviewN.py`):
 python -m open_tts render interviews/partner-smart-catalogue.yaml
 ```
 
+After render, open the output in the Qt studio (PySide6) to scrub, edit lines, and re-render:
+
+```powershell
+python -m open_tts.studio --edit interviews/partner-smart-catalogue.yaml
+# or: python -m open_tts.studio --edit interviews/output/partner-smart-catalogue
+```
+
 See `docs/build-and-test-plan-script-first-interview-renderer.md`. Audiotour JSON (`tts_play.py`) stays on its own path.
 
 ## Scripts
@@ -35,6 +42,7 @@ See `docs/build-and-test-plan-script-first-interview-renderer.md`. Audiotour JSO
 | Script | Purpose |
 |---|---|
 | `python -m open_tts render` | YAML script → audio, SRT, timings, sprite-sheet video |
+| `python -m open_tts.studio --edit` | Play rendered interview; edit YAML; re-render line / cues / full |
 | `tts_play.py` | Fill audiotour JSON with Grok TTS (`python tts_play.py categories-widget-audiotour.json`) |
 | `test.py` | One-shot Eve voice check against `https://api.x.ai/v1/tts` |
 | `interview1/interview.py` | Sentence-level interview audio → `interview_audio2/` |
