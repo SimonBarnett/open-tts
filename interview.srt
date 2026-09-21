@@ -1,0 +1,234 @@
+1
+00:00:00,000 --> 00:00:03,800
+Welcome everyone.
+
+2
+00:00:03,800 --> 00:00:07,600
+Today I'm joined by Eve from Club Madeira
+to talk about their Smart Catalogue.
+
+3
+00:00:07,600 --> 00:00:09,800
+Eve, thank you for joining us.
+
+4
+00:00:10,700 --> 00:00:13,400
+Thank you Leo, it's great to be here.
+
+5
+00:00:14,300 --> 00:00:16,800
+Let's start with the basics.
+
+6
+00:00:16,800 --> 00:00:19,200
+What exactly is the Smart Catalogue?
+
+7
+00:00:20,100 --> 00:00:24,500
+The Smart Catalogue by Club Madeira
+is a B2B, invite-only, white-label
+AI-powered fundraising engine.
+
+8
+00:00:24,500 --> 00:00:29,800
+It's designed specifically for professional partners —
+website designers, digital agencies,
+consultants, and service providers —
+
+9
+00:00:29,800 --> 00:00:33,200
+who work with clubs and community groups.
+
+10
+00:00:34,100 --> 00:00:38,400
+These partners can embed a fully white-labelled
+Smart Catalogue into their clients’ websites.
+
+11
+00:00:38,400 --> 00:00:43,200
+The AI automatically creates and manages
+a smart online shop with products
+that members are likely to love.
+
+12
+00:00:43,200 --> 00:00:47,600
+When members shop, the club earns commission,
+the partner gets recurring revenue,
+
+13
+00:00:47,600 --> 00:00:51,400
+and merchants get targeted exposure —
+all with almost no extra work.
+
+14
+00:00:52,300 --> 00:00:55,000
+Who is this platform actually for?
+
+15
+00:00:55,900 --> 00:00:59,400
+It's exclusively for approved professional partners.
+
+16
+00:00:59,400 --> 00:01:03,200
+Clubs don't buy it directly.
+Partners control the client relationship,
+branding, pricing, and support.
+
+17
+00:01:03,200 --> 00:01:07,800
+There are no monthly platform fees,
+no stock to manage,
+
+18
+00:01:07,800 --> 00:01:11,600
+and everything can be handled from a dashboard
+or even a smartphone app.
+
+19
+00:01:12,500 --> 00:01:15,800
+How does the AI actually choose
+which products to show?
+
+20
+00:01:16,700 --> 00:01:21,200
+The AI uses a practical,
+interest-based curation system.
+
+21
+00:01:21,200 --> 00:01:26,400
+Club admins pick their group's main interests
+and categories through the smartphone app —
+
+22
+00:01:26,400 --> 00:01:30,800
+things like model flying, scouting,
+sports, crafts, parenting, etc.
+
+23
+00:01:31,700 --> 00:01:36,200
+The AI then pulls products from trusted
+merchant feeds and APIs,
+
+24
+00:01:36,200 --> 00:01:40,400
+matches them to those interests,
+and scores them for relevance.
+
+25
+00:01:40,400 --> 00:01:45,200
+The catalogue is living — it updates daily,
+adding new products and removing ones
+that are no longer relevant.
+
+26
+00:01:46,100 --> 00:01:50,400
+During some conversations, your team mentioned
+keeping products in a 'Vault'.
+
+27
+00:01:50,400 --> 00:01:52,800
+What is that exactly?
+
+28
+00:01:53,700 --> 00:01:57,600
+The Vault is our internal name
+for the central product database.
+
+29
+00:01:57,600 --> 00:02:02,200
+We don't hold any physical stock —
+this is a pure affiliate model.
+
+30
+00:02:02,200 --> 00:02:06,800
+Merchants connect their stores via APIs,
+and we pull product data into our system.
+
+31
+00:02:07,700 --> 00:02:12,400
+It's essentially a large, well-organized database
+of normalised product information
+
+32
+00:02:12,400 --> 00:02:16,200
+that our AI can search and curate from efficiently.
+
+33
+00:02:17,100 --> 00:02:21,000
+Your salesman described this Vault
+as very rare and special.
+
+34
+00:02:21,000 --> 00:02:24,200
+Is a database really that unusual?
+
+35
+00:02:25,100 --> 00:02:29,400
+Databases themselves are very common —
+almost every modern website uses one.
+
+36
+00:02:29,400 --> 00:02:34,800
+What makes our system special is not the database,
+but how we combine it with powerful AI
+
+37
+00:02:34,800 --> 00:02:40,200
+to automatically build and maintain highly relevant
+catalogues for thousands of different communities
+
+38
+00:02:40,200 --> 00:02:43,600
+with almost no manual effort.
+
+39
+00:02:44,500 --> 00:02:49,200
+That level of smart automation,
+especially in the club and community
+fundraising space, is quite rare.
+
+40
+00:02:50,100 --> 00:02:53,400
+So would you say the salesman
+was overselling it a bit?
+
+41
+00:02:54,300 --> 00:02:57,800
+There's always a bit of sales enthusiasm!
+
+42
+00:02:57,800 --> 00:03:03,200
+The core technology — a database plus AI curation —
+isn't unique in the broader e-commerce world.
+
+43
+00:03:03,200 --> 00:03:08,600
+But the specific combination we’ve built:
+white-label for agencies,
+smartphone-first admin,
+
+44
+00:03:08,600 --> 00:03:13,400
+fully automated curation, zero stock,
+and strong focus on community fundraising,
+
+45
+00:03:13,400 --> 00:03:17,200
+is genuinely valuable and unusual in this niche.
+
+46
+00:03:18,100 --> 00:03:21,400
+We prefer to focus on the real benefits
+rather than hype.
+
+47
+00:03:22,300 --> 00:03:25,600
+Thank you Eve. This has been very insightful.
+
+48
+00:03:25,600 --> 00:03:28,800
+I'm excited to see how the Smart Catalogue develops.
+
+49
+00:03:29,700 --> 00:03:32,800
+Thank you Leo. It was a pleasure.

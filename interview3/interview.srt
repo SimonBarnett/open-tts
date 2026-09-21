@@ -1,0 +1,188 @@
+1
+00:00:00,000 --> 00:00:01,440
+Welcome back everyone.
+
+2
+00:00:01,790 --> 00:00:05,870
+Today I'm joined once again by Eve from Club Madeira.
+
+3
+00:00:06,220 --> 00:00:08,092
+Eve, thank you for being here.
+
+4
+00:00:09,042 --> 00:00:10,410
+Always a pleasure, Leo.
+
+5
+00:00:11,360 --> 00:00:22,856
+So, if I wanted to become a partner — say I'm a website designer or digital agency working with clubs — walk me through what that would look like, especially the white-label side.
+
+6
+00:00:23,806 --> 00:00:26,086
+That's the part partners love most.
+
+7
+00:00:26,436 --> 00:00:31,116
+The Smart Catalogue is built from the ground up as a fully white-label product.
+
+8
+00:00:31,466 --> 00:00:34,226
+Clubs never see Club Madeira branding.
+
+9
+00:00:34,576 --> 00:00:42,400
+When you embed it, the entire experience appears under your client's brand, on their domain, with their colours, logo and voice.
+
+10
+00:00:42,750 --> 00:00:48,006
+From the member's point of view it simply feels like the club's own professional online shop.
+
+11
+00:00:48,356 --> 00:00:51,020
+That's a huge selling point for agencies.
+
+12
+00:00:51,970 --> 00:00:55,066
+So I control the look and feel completely?
+
+13
+00:00:56,016 --> 00:00:57,048
+Completely.
+
+14
+00:00:57,398 --> 00:01:04,646
+You control the branding, the pricing you charge the club, the level of support you offer, and the ongoing client relationship.
+
+15
+00:01:04,996 --> 00:01:06,532
+We stay in the background.
+
+16
+00:01:06,882 --> 00:01:15,522
+You deliver a white-labelled Progressive Web App experience that members can even install on their phones — still fully branded as the club.
+
+17
+00:01:16,472 --> 00:01:19,568
+Can I modify the code myself if I need to?
+
+18
+00:01:20,518 --> 00:01:21,238
+Yes.
+
+19
+00:01:21,588 --> 00:01:27,300
+The complete partner integration code is available under the MIT open-source licence.
+
+20
+00:01:27,650 --> 00:01:31,370
+You're free to use it, modify it, and extend it however you need.
+
+21
+00:01:31,720 --> 00:01:40,600
+That means you can adapt the widgets, adjust the PWA behaviour, or build additional features on top without asking permission or paying extra.
+
+22
+00:01:40,950 --> 00:01:45,870
+It's designed so agencies can properly own the technical delivery for their clients.
+
+23
+00:01:46,820 --> 00:01:52,724
+That makes it feel like a premium service I'm providing, not a locked-down third-party tool.
+
+24
+00:01:53,674 --> 00:01:54,586
+Exactly.
+
+25
+00:01:54,936 --> 00:01:57,312
+You're not reselling someone else's platform.
+
+26
+00:01:57,662 --> 00:02:03,302
+You're embedding a powerful fundraising engine that becomes part of the club's own digital presence.
+
+27
+00:02:03,652 --> 00:02:10,396
+And because it's white-label and open source under MIT, you can position and customise it however you like.
+
+28
+00:02:11,346 --> 00:02:14,250
+How does the commercial side work in that model?
+
+29
+00:02:15,200 --> 00:02:22,304
+When members shop, the club earns commission, you earn recurring revenue, and merchants get targeted exposure.
+
+30
+00:02:22,654 --> 00:02:24,766
+There are no monthly platform fees.
+
+31
+00:02:25,116 --> 00:02:31,116
+Your technical work is the clean integration, branding, and any modifications you choose to make.
+
+32
+00:02:31,466 --> 00:02:34,946
+The ongoing commercial opportunity is driving engagement.
+
+33
+00:02:35,296 --> 00:02:39,976
+We expect each active catalogue to generate around two thousand clicks a month.
+
+34
+00:02:40,326 --> 00:02:46,182
+That comes from the marketing, SEO and promotion that you bill the club for as a paid service.
+
+35
+00:02:47,132 --> 00:02:55,364
+So the white-label nature plus the MIT licence lets me own the whole relationship and charge properly for the value.
+
+36
+00:02:56,314 --> 00:02:57,298
+That's the model.
+
+37
+00:02:57,648 --> 00:03:01,248
+You bring the clubs, the websites and the promotional expertise.
+
+38
+00:03:01,598 --> 00:03:07,286
+We provide the AI, the product vault and the infrastructure — all invisible to the end user.
+
+39
+00:03:07,636 --> 00:03:12,772
+It turns a simple website add-on into a high-value, recurring service under your brand.
+
+40
+00:03:13,722 --> 00:03:15,138
+That's very clear.
+
+41
+00:03:15,488 --> 00:03:18,656
+What's the practical first step if I wanted to start?
+
+42
+00:03:19,606 --> 00:03:32,734
+You become an approved partner, receive your affiliate code and the full partner package — including the MIT-licensed integration code — then begin embedding the white-label catalogue for your existing club clients.
+
+43
+00:03:33,084 --> 00:03:36,780
+From day one it looks and feels like something you built for them.
+
+44
+00:03:37,730 --> 00:03:38,810
+Thank you, Eve.
+
+45
+00:03:39,160 --> 00:03:40,888
+That's extremely helpful.
+
+46
+00:03:41,838 --> 00:03:42,870
+Thank you, Leo.
+
+47
+00:03:43,220 --> 00:03:45,092
+Happy to go deeper any time.
+

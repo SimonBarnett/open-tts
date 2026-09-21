@@ -1,0 +1,200 @@
+1
+00:00:00,000 --> 00:00:01,584
+Welcome back everyone.
+
+2
+00:00:01,934 --> 00:00:06,710
+Today I'm delighted to be joined once again by Eve from Club Madeira.
+
+3
+00:00:07,060 --> 00:00:11,908
+In our previous conversation we covered the overall Smart Catalogue concept.
+
+4
+00:00:12,258 --> 00:00:16,122
+Today we're going to dig into some of the more technical questions.
+
+5
+00:00:16,472 --> 00:00:19,232
+Eve, thank you so much for joining us again.
+
+6
+00:00:20,182 --> 00:00:22,606
+Thank you Leo, it's a pleasure to be back.
+
+7
+00:00:23,556 --> 00:00:28,116
+Why did you choose to build a product vault instead of individual catalogs?
+
+8
+00:00:29,066 --> 00:00:32,714
+A catalog is a collection of categories belonging to a club.
+
+9
+00:00:33,064 --> 00:00:36,808
+A product may exist in many categories and on many clubs.
+
+10
+00:00:37,158 --> 00:00:42,798
+First, you need to make a list of products and then decide which catalog or club they are relevant to.
+
+11
+00:00:43,748 --> 00:00:46,436
+How do products enter the product vault?
+
+12
+00:00:47,386 --> 00:00:52,714
+Through merchant synchronization, we rotate through all the merchants' API keys in the system.
+
+13
+00:00:53,064 --> 00:00:56,784
+Each key gives us access to a merchant's online catalog.
+
+14
+00:00:57,134 --> 00:01:03,782
+The key can be from any of the common product stores like Awin, Wix, WooCommerce, Shopify, etcetera.
+
+15
+00:01:04,132 --> 00:01:11,020
+We download the product details, normalize them into a standard format, and save them to the RDS, our vault.
+
+16
+00:01:11,970 --> 00:01:14,610
+How are products organized once they're there?
+
+17
+00:01:15,560 --> 00:01:19,880
+At this point, it's just a big Excel-like sheet of product data.
+
+18
+00:01:20,230 --> 00:01:23,398
+They are organized to be optimal for text searches.
+
+19
+00:01:24,348 --> 00:01:28,212
+What role does AI play in managing the product vault?
+
+20
+00:01:29,162 --> 00:01:31,202
+None at the ingestion stage.
+
+21
+00:01:31,552 --> 00:01:36,856
+We have a list of API keys and functions that know how to pull products from each system.
+
+22
+00:01:37,206 --> 00:01:44,190
+The AI only comes in when we are choosing which products are relevant to a given community, category, or subcategory.
+
+23
+00:01:45,140 --> 00:01:48,716
+How does a new catalog get created from the product vault?
+
+24
+00:01:49,666 --> 00:01:55,618
+Actually, a new catalog is created from the club website the partner identified during the invite.
+
+25
+00:01:55,968 --> 00:02:03,408
+The AI reviews the website, identifies the audience, and works up a marketing report listing all the affiliate opportunities.
+
+26
+00:02:03,758 --> 00:02:08,702
+Then we feed all of that back to the AI as context for choosing the best categories.
+
+27
+00:02:09,052 --> 00:02:15,916
+For each category, it returns positive and negative keywords and the meta descriptions we use for searches.
+
+28
+00:02:16,866 --> 00:02:20,730
+What happens when we want to put products into those categories?
+
+29
+00:02:21,680 --> 00:02:24,200
+That's when the vault becomes really useful.
+
+30
+00:02:24,550 --> 00:02:38,134
+We do an initial text search across Amazon, eBay, and our vault to find candidate products, then we give the AI the full context for the category plus the candidate products including images, descriptions, and features.
+
+31
+00:02:38,484 --> 00:02:43,044
+For each product, the AI returns a simple yes or no with a reason.
+
+32
+00:02:43,994 --> 00:02:48,050
+How does smartphone administration work and why was it important?
+
+33
+00:02:49,000 --> 00:02:56,032
+The smartphone interface is just the website on a small screen, but this form factor is very important for customers.
+
+34
+00:02:56,382 --> 00:03:04,638
+Club admins, many of whom use their mobile as their primary device, it lowers both the cost and technical barriers for participation.
+
+35
+00:03:05,588 --> 00:03:11,204
+What happens when a participating supplier changes a product, price, or availability?
+
+36
+00:03:12,154 --> 00:03:19,762
+Merchant synchronization automatically inserts new products, updates existing ones, and removes any that are no longer listed.
+
+37
+00:03:20,112 --> 00:03:22,872
+This runs every seventy-two hours or so.
+
+38
+00:03:23,822 --> 00:03:28,382
+What makes the architecture scalable for different markets and countries?
+
+39
+00:03:29,332 --> 00:03:35,716
+The region-agnostic AWS backend means we can spin up separate instances in each Amazon region.
+
+40
+00:03:36,066 --> 00:03:42,186
+The front-end AI assistant is also region-aware and supports multiple languages and accents.
+
+41
+00:03:43,136 --> 00:03:47,504
+Looking back, which architectural decision are you most proud of?
+
+42
+00:03:48,454 --> 00:03:51,070
+The SQS queues are a work of art.
+
+43
+00:03:51,420 --> 00:04:01,140
+They're capable of downloading eight hundred K products an hour and orchestrating all the searches required to maintain the catalogs with a massively scalable workload.
+
+44
+00:04:02,090 --> 00:04:07,130
+If you had one minute to explain the product vault to an investor, what would you say?
+
+45
+00:04:08,080 --> 00:04:10,864
+It's a shiny, carefully tuned database.
+
+46
+00:04:11,214 --> 00:04:23,478
+The clever bit is in how we populate the data into it from multiple third-party systems using merchant API keys and how we exploit that data to find relevant products that the club's members will love.
+
+47
+00:04:24,428 --> 00:04:26,228
+Thank you so much, Eve.
+
+48
+00:04:26,578 --> 00:04:31,162
+I'm really excited to see this smart catalog go forward with Club Madeira.
+
+49
+00:04:32,112 --> 00:04:33,168
+Thank you, Leo.
+
+50
+00:04:33,518 --> 00:04:35,318
+It was a pleasure speaking with you.
+

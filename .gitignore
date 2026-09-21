@@ -1,0 +1,33 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+secrets*
+
+# Generated audio / video
+*.mp3
+*.mp4
+*.wav
+*.aac
+*.webm
+*.lnk
+temp_sub.srt
+concat_list.txt
+silence_*.mp3
+
+# Generated TTS payloads (base64 inside JSON)
+processed/
+eve/
+temp_segments*/
+temp_segments/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
