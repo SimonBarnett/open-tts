@@ -42,9 +42,14 @@ def normalized_lines(data: dict[str, Any]) -> list[dict]:
     return lines
 
 
-def layout_options(data: dict[str, Any]) -> dict[str, int]:
+def layout_options(data: dict[str, Any]) -> dict[str, str | int]:
     layout = data.get("layout") or {}
+    characters = data.get("characters") or {}
+    host_raw = characters.get("host", "leo")
+    guest_raw = characters.get("guest", "eve")
     return {
         "dual_start_turns": int(layout.get("dual_start_turns", 4)),
         "dual_end_turns": int(layout.get("dual_end_turns", 5)),
+        "host": resolve_speaker(str(host_raw), characters),
+        "guest": resolve_speaker(str(guest_raw), characters),
     }

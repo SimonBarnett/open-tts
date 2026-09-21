@@ -82,6 +82,8 @@ def render_interview(
             srt_path,
             layout["dual_start_turns"],
             layout["dual_end_turns"],
+            str(layout["host"]),
+            str(layout["guest"]),
             video_out,
         )
 

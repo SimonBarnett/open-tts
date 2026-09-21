@@ -7,6 +7,8 @@ import subprocess
 from itertools import groupby
 from pathlib import Path
 
+from PIL import Image
+
 from open_tts.audio import media_duration
 from open_tts.characters import load_registry, sheet_for
 from open_tts.sprite import CharacterSheet, viseme_sequence_for_text
@@ -43,12 +45,18 @@ def merged_speaker_blocks(
     return merged
 
 
+_PAUSE_LINE = {"id": 0, "text": "", "cue": "pause"}
+
+
 def _frame_for_line(sheet: CharacterSheet, line: dict, t_in_line: float) -> Path:
     cue = (line.get("cue") or "").lower()
     if cue in ("laugh", "surprise"):
         frames = sheet.expression_frames(cue)
         idx = int(t_in_line * 8) % len(frames)
         img = frames[idx]
+    elif cue == "pause":
+        idx = 0
+        img = sheet.pause()
     else:
         visemes = viseme_sequence_for_text(line["text"])
         idx = int(t_in_line * 6) % len(visemes)
@@ -61,12 +69,31 @@ def _frame_for_line(sheet: CharacterSheet, line: dict, t_in_line: float) -> Path
     return out
 
 
+def _compose_split_frame(
+    left_path: Path, right_path: Path, size: tuple[int, int], dest: Path
+) -> None:
+    w, h = size
+    half_w = w // 2
+    left = Image.open(left_path).convert("RGBA").resize(
+        (half_w, h), Image.Resampling.LANCZOS
+    )
+    right = Image.open(right_path).convert("RGBA").resize(
+        (half_w, h), Image.Resampling.LANCZOS
+    )
+    canvas = Image.new("RGBA", (w, h))
+    canvas.paste(left, (0, 0))
+    canvas.paste(right, (half_w, 0))
+    canvas.convert("RGB").save(dest)
+
+
 def render_block_clip(
     block: dict,
     sheets: dict[str, CharacterSheet],
     fps: int,
     size: tuple[int, int],
     out_path: Path,
+    host_id: str,
+    guest_id: str,
 ) -> None:
     w, h = size
     duration = block["duration"]
@@ -94,22 +121,33 @@ def render_block_clip(
             if t >= line_starts[j]:
                 line = ln
                 t_line = t - line_starts[j]
-        frame_path = _frame_for_line(sheet, line, t_line)
-        # Scale to canvas (single speaker centered).
         dest = frame_dir / f"frame_{fi:06d}.png"
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-y",
-                "-i",
-                str(frame_path),
-                "-vf",
-                f"scale={w}:{h}:flags=lanczos",
-                str(dest),
-            ],
-            check=True,
-            capture_output=True,
-        )
+        if block.get("mode") == "split":
+            if speaker == host_id:
+                left_path = _frame_for_line(sheet, line, t_line)
+                right_path = _frame_for_line(sheets[guest_id], _PAUSE_LINE, 0.0)
+            elif speaker == guest_id:
+                left_path = _frame_for_line(sheets[host_id], _PAUSE_LINE, 0.0)
+                right_path = _frame_for_line(sheet, line, t_line)
+            else:
+                left_path = _frame_for_line(sheets[host_id], _PAUSE_LINE, 0.0)
+                right_path = _frame_for_line(sheets[guest_id], _PAUSE_LINE, 0.0)
+            _compose_split_frame(left_path, right_path, size, dest)
+        else:
+            frame_path = _frame_for_line(sheet, line, t_line)
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    str(frame_path),
+                    "-vf",
+                    f"scale={w}:{h}:flags=lanczos",
+                    str(dest),
+                ],
+                check=True,
+                capture_output=True,
+            )
 
     run(
         [
@@ -186,6 +224,8 @@ def build_video(
     srt_path: Path,
     dual_start: int,
     dual_end: int,
+    host_id: str,
+    guest_id: str,
     video_out: Path,
 ) -> None:
     registry = load_registry()
@@ -203,7 +243,15 @@ def build_video(
     clips: list[Path] = []
     for i, block in enumerate(blocks):
         clip = temp / f"seg_{i:02d}.mp4"
-        render_block_clip(block, sheets, fps=24, size=(1280, 720), out_path=clip)
+        render_block_clip(
+            block,
+            sheets,
+            fps=24,
+            size=(1280, 720),
+            out_path=clip,
+            host_id=host_id,
+            guest_id=guest_id,
+        )
         clips.append(clip)
 
     list_file = temp / "list.txt"
