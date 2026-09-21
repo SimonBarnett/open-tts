@@ -16,4 +16,7 @@ Replace letter cycling with G2P + P2V + intervals. Pre-#11 consonants may map to
 
 ## Definition of done
 
-Issue #12 acceptance green. PR from `work/<job>`. Never push `main`. Never merge.
+Issue #12 acceptance green on `origin/main` (PR #42 + PR #94 / MRB #112).
+MRB #117 required fixes: do not merge PR #109 as #12; do not re-implement
+the mapper or start a timestamp FIX from `1c9b6f59`. PR from `work/<job>`.
+Never push `main`. Never merge.

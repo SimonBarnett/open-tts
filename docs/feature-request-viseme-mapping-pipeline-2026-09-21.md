@@ -26,10 +26,19 @@ Painting extra sheet row (#11). Expression vocabulary (#10). Qt wizard (#9). MFA
 
 ## Acceptance
 
-- [ ] `open_tts/visemes.py` owns G2P + P2V + interval build; widgets and `video.py` only look up `v(t)`.
-- [ ] `"vault"` → phones including `V`/`AO`; viseme track is not `[a, u]` from spelling.
-- [ ] `"beat"` → `IY` → `i`; `"map"` contains an `mbp` (or `pause` stand-in pre-#11) interval.
-- [ ] Frame at time `t` uses `[t0, t1)`, not `t * 6 % n`.
-- [ ] Line-level cues still win over visemes.
-- [ ] Tests do not need ffmpeg or a display.
-- [ ] `tts_play.py` untouched. No keys in git.
+- [x] `open_tts/visemes.py` owns G2P + P2V + interval build; widgets and `video.py` only look up `v(t)`.
+- [x] `"vault"` → phones including `V`/`AO`; viseme track is not `[a, u]` from spelling.
+- [x] `"beat"` → `IY` → `i`; `"map"` contains an `mbp` (or `pause` stand-in pre-#11) interval.
+- [x] Frame at time `t` uses `[t0, t1)`, not `t * 6 % n`.
+- [x] Line-level cues still win over visemes.
+- [x] Tests do not need ffmpeg or a display.
+- [x] `tts_play.py` untouched. No keys in git.
+
+## Delivery (origin/main)
+
+G2P/P2V and interval lookup landed in PR #42 (`ea480b7`). Alignment v1
+(`with_timestamps` producer and prefer-when-present) landed in PR #94
+(`b612cc00`, merge `71e000c`; MRB #112 PASS-nits). MRB #117: do not merge
+PR #109 (`1c9b6f59`) as the #12 FIX — that head is issue #3 YAML (board
+#103); issue #3 wording is on main via PR #114. Do not replay mapper or
+timestamp work from the #109 line.
