@@ -3,14 +3,42 @@ import unittest
 from pathlib import Path
 
 from open_tts.sprite import (
+    ANIMATION_START_ROW,
     EXPRESSION_COL,
+    EXPRESSION_ROW,
     VISEME_COL,
     CharacterSheet,
     ensure_placeholder_sheet,
 )
 
+LOCKED_EXPRESSION_IDS = (
+    ("surprise", 0),
+    ("laugh", 1),
+    ("smile", 2),
+    ("concern", 3),
+    ("think", 4),
+    ("listen", 5),
+)
+
 
 class TestSpriteLayout(unittest.TestCase):
+    def test_expression_col_locked_six_wide_row(self):
+        self.assertEqual(len(EXPRESSION_COL), 6)
+        for name, col in LOCKED_EXPRESSION_IDS:
+            self.assertEqual(EXPRESSION_COL[name], col)
+
+    def test_expression_frames_smile_not_pause_stand_in(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            frame_px = sheet.expression_frames("smile")[0].getpixel((0, 0))
+            self.assertNotEqual(frame_px, sheet.pause().getpixel((0, 0)))
+            expected = sheet.cell(EXPRESSION_COL["smile"], ANIMATION_START_ROW).getpixel(
+                (0, 0)
+            )
+            self.assertEqual(frame_px, expected)
+
     def test_shared_indices_across_characters(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -27,6 +55,7 @@ class TestSpriteLayout(unittest.TestCase):
             self.assertEqual(EXPRESSION_COL["laugh"], 1)
             self.assertEqual(EXPRESSION_COL["smile"], 2)
             self.assertEqual(EXPRESSION_COL["listen"], 5)
+            self.assertEqual(EXPRESSION_ROW, 1)
             self.assertEqual(VISEME_COL["pause"], 5)
             laugh_a = a.laugh().getpixel((0, 0))
             laugh_b = b.laugh().getpixel((0, 0))

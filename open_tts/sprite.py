@@ -7,6 +7,8 @@ from pathlib import Path
 from PIL import Image
 
 # Grid contract: 6 columns; same (col, row) for every character sheet.
+# Row 0: vowels (`VISEME_COL`). Row 1: six-wide expression row (`EXPRESSION_COL`).
+# Rows 2+: two animation frames per expression column.
 COLS = 6
 VISEME_ROW = 0
 EXPRESSION_ROW = 1
@@ -89,9 +91,11 @@ class CharacterSheet:
         return self.cell(EXPRESSION_COL["listen"], EXPRESSION_ROW)
 
     def expression_frames(self, expression: str) -> list[Image.Image]:
-        col = EXPRESSION_COL.get(expression)
-        if col is None:
-            return [self.pause()]
+        key = expression.lower()
+        if key not in EXPRESSION_COL:
+            known = ", ".join(sorted(EXPRESSION_COL))
+            raise ValueError(f"Unknown expression '{expression}'. Known: {known}")
+        col = EXPRESSION_COL[key]
         frames: list[Image.Image] = []
         for row in range(ANIMATION_START_ROW, ANIMATION_START_ROW + ANIMATION_FRAME_ROWS):
             frames.append(self.cell(col, row))
@@ -112,10 +116,14 @@ def viseme_sequence_for_text(text: str) -> list[str]:
 
 def ensure_placeholder_sheet(path: Path, label: str, cell_px: int = DEFAULT_CELL_PX) -> None:
     """Create a minimal valid sheet (viseme row + expression row + animation rows)."""
-    if path.is_file():
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
     rows = ANIMATION_START_ROW + ANIMATION_FRAME_ROWS
+    expected_h = rows * cell_px
+    expected_w = COLS * cell_px
+    if path.is_file():
+        with Image.open(path) as existing:
+            if existing.width >= expected_w and existing.height >= expected_h:
+                return
+    path.parent.mkdir(parents=True, exist_ok=True)
     w, h = COLS * cell_px, rows * cell_px
     img = Image.new("RGBA", (w, h), (40, 44, 52, 255))
     colors = {
