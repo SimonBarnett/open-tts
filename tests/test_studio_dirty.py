@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -92,21 +93,40 @@ class TestResolveProject(unittest.TestCase):
                 (root / "interviews" / "output" / "demo").resolve(),
             )
 
-    def test_yaml_path_resolves_output_dir(self):
-        from pathlib import Path
-
+    def test_yaml_path_resolves_partner_style_output_dir(self):
         from open_tts.studio.project import resolve_edit_target
 
-        root = Path(__file__).resolve().parent.parent
-        yaml = root / "interviews" / "partner-smart-catalogue.yaml"
-        if not yaml.is_file():
-            self.skipTest("partner-smart-catalogue.yaml not present")
-        proj = resolve_edit_target(yaml)
-        self.assertEqual(proj.yaml_path.resolve(), yaml.resolve())
-        self.assertEqual(
-            proj.output_dir.resolve(),
-            (root / "interviews" / "output" / "partner-smart-catalogue").resolve(),
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            yaml_path = root / "interviews" / "partner-smart-catalogue.yaml"
+            yaml_path.parent.mkdir(parents=True)
+            yaml_path.write_text(
+                "title: T\ncharacters: {host: leo, guest: eve}\nscript: []\n",
+                encoding="utf-8",
+            )
+            proj = resolve_edit_target(yaml_path)
+            self.assertEqual(
+                proj.output_dir.resolve(),
+                (root / "interviews" / "output" / "partner-smart-catalogue").resolve(),
+            )
+
+    def test_output_dir_under_interviews_output_finds_yaml(self):
+        from open_tts.studio.project import resolve_edit_target
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            interviews = root / "interviews"
+            out = interviews / "output" / "partner-smart-catalogue"
+            out.mkdir(parents=True)
+            (out / "timings.json").write_text(json.dumps([]), encoding="utf-8")
+            yaml_path = interviews / "partner-smart-catalogue.yaml"
+            yaml_path.write_text(
+                "title: T\ncharacters: {host: leo, guest: eve}\nscript: []\n",
+                encoding="utf-8",
+            )
+            proj = resolve_edit_target(out)
+            self.assertEqual(proj.yaml_path.resolve(), yaml_path.resolve())
+            self.assertEqual(proj.output_dir.resolve(), out.resolve())
 
     def test_output_dir_to_yaml(self):
         from pathlib import Path
