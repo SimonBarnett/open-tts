@@ -13,6 +13,7 @@ secrets*
 *.wav
 characters/*.png
 interviews/output/
+projects/**/_work/
 _frame_cache/
 *.aac
 *.webm
