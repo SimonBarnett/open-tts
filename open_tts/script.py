@@ -77,6 +77,31 @@ def save_interview(data: dict[str, Any], path: Path) -> None:
     )
 
 
+def interview_document(
+    *,
+    title: str,
+    characters: dict[str, str],
+    layout: dict[str, int],
+    script_rows: list[dict[str, str]],
+) -> dict[str, Any]:
+    script: list[dict[str, str]] = []
+    for row in script_rows:
+        entry: dict[str, str] = {
+            "speaker": row["speaker"],
+            "text": row["text"],
+        }
+        cue = row.get("cue")
+        if cue:
+            entry["cue"] = cue
+        script.append(entry)
+    return {
+        "title": title,
+        "characters": characters,
+        "layout": layout,
+        "script": script,
+    }
+
+
 def layout_options(data: dict[str, Any]) -> dict[str, str | int]:
     layout = data.get("layout") or {}
     characters = data.get("characters") or {}

@@ -6,7 +6,12 @@ import re
 
 from open_tts.sprite import EXPRESSION_COL
 
+AUTO = "auto"
+
 VALID_CUES = frozenset({"pause", *EXPRESSION_COL.keys()})
+
+# Values shown in the studio combo; ``auto`` omits ``cue`` in saved YAML.
+ANIMATION_CHOICES: tuple[str, ...] = (AUTO, "pause", *sorted(EXPRESSION_COL.keys()))
 
 
 def validate_cue(cue: str) -> None:
@@ -38,4 +43,21 @@ def suggest_cue(text: str, *, is_listener: bool = False) -> str:
         r"\bso\b", low
     ):
         return "think"
-    return "auto"
+    return AUTO
+
+
+def cue_from_yaml(entry: dict) -> str:
+    """Map a script entry to a studio animation value."""
+    cue = entry.get("cue")
+    if not cue:
+        return AUTO
+    return str(cue).lower()
+
+
+def cue_to_yaml_value(animation: str) -> str | None:
+    """Return YAML ``cue`` value or None to omit (renderer vowel visemes)."""
+    key = animation.strip().lower()
+    if key in ("", AUTO, "none"):
+        return None
+    validate_cue(key)
+    return key
