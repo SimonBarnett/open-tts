@@ -46,7 +46,7 @@ def merged_speaker_blocks(
     return merged
 
 
-_PAUSE_LINE = {"id": 0, "text": "", "cue": "pause"}
+_LISTEN_LINE = {"id": 0, "text": "", "cue": "listen"}
 
 
 def _frame_for_line(sheet: CharacterSheet, line: dict, t_in_line: float) -> Path:
@@ -130,13 +130,13 @@ def render_block_clip(
         if block.get("mode") == "split":
             if speaker == host_id:
                 left_path = _frame_for_line(sheet, line, t_line)
-                right_path = _frame_for_line(sheets[guest_id], _PAUSE_LINE, 0.0)
+                right_path = _frame_for_line(sheets[guest_id], _LISTEN_LINE, 0.0)
             elif speaker == guest_id:
-                left_path = _frame_for_line(sheets[host_id], _PAUSE_LINE, 0.0)
+                left_path = _frame_for_line(sheets[host_id], _LISTEN_LINE, 0.0)
                 right_path = _frame_for_line(sheet, line, t_line)
             else:
-                left_path = _frame_for_line(sheets[host_id], _PAUSE_LINE, 0.0)
-                right_path = _frame_for_line(sheets[guest_id], _PAUSE_LINE, 0.0)
+                left_path = _frame_for_line(sheets[host_id], _LISTEN_LINE, 0.0)
+                right_path = _frame_for_line(sheets[guest_id], _LISTEN_LINE, 0.0)
             _compose_split_frame(left_path, right_path, size, dest)
         else:
             frame_path = _frame_for_line(sheet, line, t_line)

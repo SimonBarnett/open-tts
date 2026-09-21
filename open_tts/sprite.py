@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image
 
 # Grid contract: 6 columns; same (col, row) for every character sheet.
+# Row 0: visemes (VISEME_COL). Row 1: six expressions (EXPRESSION_COL, cols 0–5).
 COLS = 6
 VISEME_ROW = 0
 EXPRESSION_ROW = 1

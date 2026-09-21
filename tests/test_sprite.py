@@ -78,6 +78,12 @@ class TestSpriteLayout(unittest.TestCase):
                     frames_b[0].getpixel((0, 0)),
                     msg=name,
                 )
+                pause_px = a.pause().getpixel((0, 0))
+                self.assertNotEqual(
+                    frames_a[0].getpixel((0, 0)),
+                    pause_px,
+                    msg=f"{name} animation must not be pause stand-in",
+                )
 
 
 if __name__ == "__main__":
