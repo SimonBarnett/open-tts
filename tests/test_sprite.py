@@ -35,6 +35,27 @@ class TestSpriteLayout(unittest.TestCase):
             smile_b = b.smile().getpixel((0, 0))
             self.assertEqual(smile_a, smile_b)
             self.assertNotEqual(smile_a, laugh_a)
+            for name in ("surprise", "concern", "think", "listen"):
+                px_a = getattr(a, name)().getpixel((0, 0))
+                px_b = getattr(b, name)().getpixel((0, 0))
+                self.assertEqual(px_a, px_b, name)
+            for expr_id in EXPRESSION_COL:
+                frames = a.expression_frames(expr_id)
+                self.assertEqual(len(frames), 2)
+                self.assertEqual(
+                    frames[0].getpixel((0, 0)), b.expression_frames(expr_id)[0].getpixel((0, 0))
+                )
+
+    def test_placeholder_expression_cells_are_distinct(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(path, "leo")
+            sheet = CharacterSheet(path)
+            pixels = {
+                name: getattr(sheet, name)().getpixel((0, 0))[:3]
+                for name in EXPRESSION_COL
+            }
+            self.assertEqual(len(set(pixels.values())), len(EXPRESSION_COL))
 
 
 if __name__ == "__main__":

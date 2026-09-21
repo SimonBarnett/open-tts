@@ -30,6 +30,22 @@ class TestExpressionCues(unittest.TestCase):
             self.assertEqual(actual, expr_px)
             self.assertNotEqual(actual, vowel_px)
 
+    def test_expression_cues_use_expression_frames_not_vowels(self):
+        cues = ("concern", "think", "listen", "surprise", "laugh")
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            vowel_px = sheet.viseme("e").getpixel((0, 0))
+            for cue in cues:
+                with self.subTest(cue=cue):
+                    line = {"id": 1, "text": "every vowel eeeeee", "cue": cue}
+                    frame_path = _frame_for_line(sheet, line, 0.0)
+                    expected = sheet.expression_frames(cue)[0].getpixel((0, 0))
+                    actual = Image.open(frame_path).getpixel((0, 0))
+                    self.assertEqual(actual, expected)
+                    self.assertNotEqual(actual[:3], vowel_px[:3])
+
 
 class TestPauseCue(unittest.TestCase):
     def test_pause_cue_uses_pause_cell_not_vowel(self):

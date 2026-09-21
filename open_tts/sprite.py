@@ -112,10 +112,14 @@ def viseme_sequence_for_text(text: str) -> list[str]:
 
 def ensure_placeholder_sheet(path: Path, label: str, cell_px: int = DEFAULT_CELL_PX) -> None:
     """Create a minimal valid sheet (viseme row + expression row + animation rows)."""
-    if path.is_file():
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
     rows = ANIMATION_START_ROW + ANIMATION_FRAME_ROWS
+    expected_h = rows * cell_px
+    expected_w = COLS * cell_px
+    if path.is_file():
+        with Image.open(path) as existing:
+            if existing.width >= expected_w and existing.height >= expected_h:
+                return
+    path.parent.mkdir(parents=True, exist_ok=True)
     w, h = COLS * cell_px, rows * cell_px
     img = Image.new("RGBA", (w, h), (40, 44, 52, 255))
     colors = {
