@@ -60,6 +60,19 @@ class TestPhoneIntervals(unittest.TestCase):
         self.assertEqual(sheet_viseme("fv"), "pause")
         self.assertEqual(sheet_viseme("i"), "i")
 
+    def test_tts_timestamp_pairs_align_beat(self):
+        chars = list("beat")
+        times = [[i * 0.1, (i + 1) * 0.1] for i in range(len(chars))]
+        intervals = build_phone_intervals(
+            "beat",
+            0.4,
+            graph_chars=chars,
+            graph_times=times,
+        )
+        iy = [p for p in intervals if p["phone"] == "IY"]
+        self.assertTrue(iy)
+        self.assertEqual(iy[0]["viseme"], "i")
+
 
 if __name__ == "__main__":
     unittest.main()
