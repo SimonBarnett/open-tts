@@ -1,4 +1,4 @@
-"""Qt runtime: play rendered interview and edit YAML in place."""
+"""PySide6 studio: issue #9 wizard and issue #13 runtime player."""
 
 from __future__ import annotations
 
