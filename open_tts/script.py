@@ -7,6 +7,8 @@ from typing import Any
 
 import yaml
 
+from open_tts.cues import validate_cue
+
 
 def load_interview(path: Path) -> dict[str, Any]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -37,7 +39,9 @@ def normalized_lines(data: dict[str, Any]) -> list[dict]:
             "text": str(entry["text"]),
         }
         if "cue" in entry and entry["cue"]:
-            line["cue"] = str(entry["cue"])
+            cue = str(entry["cue"])
+            validate_cue(cue)
+            line["cue"] = cue
         lines.append(line)
     return lines
 
