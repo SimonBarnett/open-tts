@@ -159,6 +159,24 @@ def _weighted_intervals(
     return out
 
 
+def char_end_times(graph_times: list) -> list[float] | None:
+    """Normalize xAI ``graph_times`` (scalar ends or ``[start, end]`` pairs) to end times."""
+    if not graph_times:
+        return None
+    ends: list[float] = []
+    for entry in graph_times:
+        if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+            ends.append(float(entry[1]))
+        elif isinstance(entry, dict) and "end" in entry:
+            ends.append(float(entry["end"]))
+        else:
+            try:
+                ends.append(float(entry))
+            except (TypeError, ValueError):
+                return None
+    return ends
+
+
 def _align_from_tts_timestamps(
     units: list[_AlignUnit],
     duration: float,
@@ -168,9 +186,8 @@ def _align_from_tts_timestamps(
     """Spread phone units across TTS character timestamps when lengths match."""
     if not graph_times or len(graph_chars) != len(graph_times):
         return None
-    try:
-        times = [float(x) for x in graph_times]
-    except (TypeError, ValueError):
+    times = char_end_times(graph_times)
+    if not times:
         return None
     if not times or times[-1] <= 0:
         return None

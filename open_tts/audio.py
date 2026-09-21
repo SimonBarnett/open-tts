@@ -145,18 +145,20 @@ def build_full_interview(
         dur = wav_duration_seconds(wav)
         start = cursor_sec
         end = start + dur
-        segments.append(
-            {
-                "id": i + 1,
-                "speaker": line["speaker"],
-                "text": line["text"],
-                "file": line.get("file", wav.name),
-                "start": round(start, 6),
-                "end": round(end, 6),
-                "duration": round(dur, 6),
-                "cue": line.get("cue"),
-            }
-        )
+        seg: dict = {
+            "id": i + 1,
+            "speaker": line["speaker"],
+            "text": line["text"],
+            "file": line.get("file", wav.name),
+            "start": round(start, 6),
+            "end": round(end, 6),
+            "duration": round(dur, 6),
+            "cue": line.get("cue"),
+        }
+        if line.get("graph_chars") and line.get("graph_times"):
+            seg["graph_chars"] = line["graph_chars"]
+            seg["graph_times"] = line["graph_times"]
+        segments.append(seg)
         concat_list.append(wav)
         cursor_sec = end
         if i + 1 < len(lines):

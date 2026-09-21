@@ -47,7 +47,9 @@ def render_interview(
         mp3 = speech_dir / f"{sp}_{i:03d}.mp3"
         wav = speech_dir / f"{sp}_{i:03d}.wav"
         voice = voice_for(sp, registry)
-        ensure_sentence_audio(line["text"], voice, mp3, skip_tts=skip_tts)
+        ensure_sentence_audio(
+            line["text"], voice, mp3, skip_tts=skip_tts, line=line
+        )
         if not wav.is_file() or wav.stat().st_mtime < mp3.stat().st_mtime:
             decode_to_wav(mp3, wav)
         line["file"] = mp3.name

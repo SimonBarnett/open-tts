@@ -60,6 +60,18 @@ class TestPhoneIntervals(unittest.TestCase):
         self.assertEqual(sheet_viseme("fv"), "pause")
         self.assertEqual(sheet_viseme("i"), "i")
 
+    def test_build_intervals_use_tts_timestamp_pairs_when_present(self):
+        graph_chars = ["m", "a", "p"]
+        graph_times = [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]]
+        intervals = build_phone_intervals(
+            "map",
+            1.0,
+            graph_chars=graph_chars,
+            graph_times=graph_times,
+        )
+        self.assertTrue(intervals)
+        self.assertEqual(intervals[-1]["t1"], 1.0)
+
 
 if __name__ == "__main__":
     unittest.main()
