@@ -5,6 +5,7 @@ from pathlib import Path
 from PIL import Image
 
 from open_tts.sprite import VISEME_COL, ensure_placeholder_sheet, CharacterSheet
+from open_tts.visemes import build_phone_intervals, viseme_at_time
 from open_tts.video import (
     _compose_split_frame,
     _frame_for_line,
@@ -29,6 +30,30 @@ class TestExpressionCues(unittest.TestCase):
             actual = Image.open(frame_path).getpixel((0, 0))
             self.assertEqual(actual, expr_px)
             self.assertNotEqual(actual, vowel_px)
+
+
+class TestPhonemeMouths(unittest.TestCase):
+    def test_map_line_paints_mbp_cell(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            duration = 1.0
+            phones = build_phone_intervals("map", duration)
+            line = {
+                "id": 9,
+                "text": "map",
+                "duration": duration,
+                "phones": phones,
+            }
+            t0 = next(p["t0"] for p in phones if p["viseme"] == "mbp")
+            t_mid = (t0 + next(p["t1"] for p in phones if p["viseme"] == "mbp")) / 2
+            self.assertEqual(viseme_at_time(phones, t_mid), "mbp")
+            frame_path = _frame_for_line(sheet, line, t_mid)
+            expected = sheet.mbp().getpixel((0, 0))
+            actual = Image.open(frame_path).getpixel((0, 0))
+            self.assertEqual(actual, expected)
+            self.assertNotEqual(actual, sheet.pause().getpixel((0, 0)))
 
 
 class TestPauseCue(unittest.TestCase):
