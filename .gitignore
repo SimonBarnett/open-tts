@@ -18,9 +18,10 @@ temp_sub.srt
 concat_list.txt
 silence_*.mp3
 
-# Generated TTS payloads (base64 inside JSON)
+# Generated TTS payloads (base64 inside JSON).
+# Only the repo-root eve/ copy is generated audio; interview*/eve/ holds metadata.
 processed/
-eve/
+/eve/
 temp_segments*/
 temp_segments/
 

@@ -1,0 +1,7 @@
+{
+  "id": 30,
+  "speaker": "eve",
+  "text": "We do an initial text search across Amazon, eBay, and our vault to find candidate products, then we give the AI the full context for the category plus the candidate products including images, descriptions, and features.",
+  "duration": 13.584,
+  "generated_at": "2026-07-21T15:11:13.169374"
+}
