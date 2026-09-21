@@ -4,7 +4,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from open_tts.sprite import VISEME_COL, ensure_placeholder_sheet, CharacterSheet
+from open_tts.sprite import VISEME_COL, CharacterSheet, ensure_placeholder_sheet
+from open_tts.visemes import attach_phones_to_segments, build_phone_intervals, phones_for_line
 from open_tts.video import (
     _compose_split_frame,
     _frame_for_line,
@@ -49,6 +50,49 @@ class TestPauseCue(unittest.TestCase):
             self.assertEqual(actual, pause_px)
             self.assertNotEqual(actual, vowel_px)
             self.assertEqual(VISEME_COL["pause"], 5)
+
+
+class TestPhonemeMouthFrames(unittest.TestCase):
+    def test_map_at_start_paints_mbp_not_pause(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            line = {"id": 1, "text": "map", "duration": 1.0}
+            attach_phones_to_segments([line])
+            frame_path = _frame_for_line(sheet, line, 0.0)
+            mbp_px = sheet.mbp().getpixel((0, 0))
+            pause_px = sheet.pause().getpixel((0, 0))
+            actual = Image.open(frame_path).getpixel((0, 0))
+            self.assertEqual(actual, mbp_px)
+            self.assertNotEqual(actual, pause_px)
+
+    def test_vault_early_time_paints_fv(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "eve.png"
+            ensure_placeholder_sheet(sheet_path, "eve")
+            sheet = CharacterSheet(sheet_path)
+            intervals = build_phone_intervals("vault", 1.0)
+            line = {"id": 2, "text": "vault", "duration": 1.0, "phones": intervals}
+            t = float(intervals[0]["t0"]) + 0.01
+            frame_path = _frame_for_line(sheet, line, t)
+            fv_px = sheet.fv().getpixel((0, 0))
+            actual = Image.open(frame_path).getpixel((0, 0))
+            self.assertEqual(actual, fv_px)
+
+    def test_cached_phones_skip_tts_path_uses_consonant_cells(self):
+        line = {"id": 3, "text": "beat", "duration": 0.5}
+        attach_phones_to_segments([line])
+        phones = line["phones"]
+        self.assertTrue(phones)
+        self.assertIn("phone", phones[0])
+        self.assertIn("viseme", phones[0])
+        self.assertIn("t0", phones[0])
+        self.assertIn("t1", phones[0])
+        iy = [p for p in phones if p["phone"] == "IY"]
+        self.assertTrue(iy)
+        rebuilt = phones_for_line(line)
+        self.assertEqual(rebuilt, phones)
 
 
 class TestDualLayout(unittest.TestCase):
