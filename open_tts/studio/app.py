@@ -251,24 +251,32 @@ def run_edit_app(project: StudioProject) -> int:
         def _on_list_row(self, row: int) -> None:
             if row < 0:
                 return
-            self._select_line(row + 1)
+            line_id = row + 1
+            self._select_line(line_id)
+            self._seek_to_line(line_id)
 
-        def _seek_to_line(self, line_id: int) -> None:
+        def _seek_to_line(self, line_id: int, *, bound: str = "start") -> None:
             seg = self._segment_for_id(line_id)
-            if seg:
-                ms = int(float(seg["start"]) * 1000)
-                self.player.setPosition(ms)
-                self.slider.setValue(ms)
+            if not seg:
+                return
+            key = "start" if bound == "start" else "end"
+            ms = int(float(seg[key]) * 1000)
+            self.player.setPosition(ms)
+            self.slider.setValue(ms)
 
         def _prev_line(self) -> None:
-            lid = max(1, self._current_line_id - 1)
+            if self._current_line_id <= 1:
+                self._select_line(1)
+                self._seek_to_line(1, bound="start")
+                return
+            lid = self._current_line_id - 1
             self._select_line(lid)
-            self._seek_to_line(lid)
+            self._seek_to_line(lid, bound="end")
 
         def _next_line(self) -> None:
             lid = min(len(self.segments), self._current_line_id + 1)
             self._select_line(lid)
-            self._seek_to_line(lid)
+            self._seek_to_line(lid, bound="start")
 
         def _toggle_loop(self) -> None:
             self.loop_line = not self.loop_line
