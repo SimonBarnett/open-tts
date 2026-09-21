@@ -1,6 +1,6 @@
 # Feature request: agent skills folder (`.grok/skills`)
 
-GitHub issue: _(assigned on intake)_
+GitHub issue: https://github.com/SimonBarnett/open-tts/issues/141
 
 ## Summary
 
