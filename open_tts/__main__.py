@@ -10,7 +10,7 @@ from pathlib import Path
 from open_tts.audio import MAX_SRT_AUDIO_DRIFT_SEC, check_caption_drift
 from open_tts.project import create_project, import_interview_yaml, list_projects
 from open_tts.render import render_interview
-from open_tts.studio import run_studio
+from open_tts.project_explorer import run_studio
 
 
 def cmd_render(args: argparse.Namespace) -> int:
