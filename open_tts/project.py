@@ -25,7 +25,7 @@ def repo_root() -> Path:
 def projects_root() -> Path:
     override = __import__("os").environ.get("OPEN_TTS_PROJECTS_DIR")
     if override:
-        return Path(override).expanduser()
+        return Path(override).expanduser().resolve()
     return repo_root() / "projects"
 
 
