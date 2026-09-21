@@ -55,9 +55,18 @@ class TestPhoneIntervals(unittest.TestCase):
         self.assertEqual(viseme_at_time(intervals, t_mid), intervals[0]["viseme"])
         self.assertEqual(viseme_at_time(intervals, intervals[-1]["t1"] + 1), intervals[-1]["viseme"])
 
-    def test_consonant_visemes_map_to_pause_on_sheet_pre_11(self):
-        self.assertEqual(sheet_viseme("mbp"), "pause")
-        self.assertEqual(sheet_viseme("fv"), "pause")
+    def test_vault_track_includes_fv_then_o(self):
+        intervals = build_phone_intervals("vault", 1.0)
+        visemes = [p["viseme"] for p in intervals]
+        self.assertIn("fv", visemes)
+        self.assertIn("o", visemes)
+        fv_idx = visemes.index("fv")
+        o_idx = visemes.index("o")
+        self.assertLess(fv_idx, o_idx)
+
+    def test_consonant_visemes_resolve_on_sheet(self):
+        self.assertEqual(sheet_viseme("mbp"), "mbp")
+        self.assertEqual(sheet_viseme("fv"), "fv")
         self.assertEqual(sheet_viseme("i"), "i")
 
 
