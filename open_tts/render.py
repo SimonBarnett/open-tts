@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from open_tts.audio import (
@@ -54,6 +55,8 @@ def render_interview(
 
     work = out / "_work"
     full_wav, segments = build_full_interview(lines, work, speech_wavs)
+    full_wav_out = out / "full_interview.wav"
+    shutil.copy2(full_wav, full_wav_out)
     full_mp3 = out / "full_interview.mp3"
     export_mp3_from_wav(full_wav, full_mp3)
 
