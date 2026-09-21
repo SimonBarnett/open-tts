@@ -8,6 +8,9 @@ class TestSuggestCue(unittest.TestCase):
         text = "Thank you Leo, it's great to be here."
         self.assertEqual(suggest_cue(text), "smile")
 
+    def test_welcome_line_suggests_smile(self):
+        self.assertEqual(suggest_cue("Welcome everyone."), "smile")
+
     def test_partner_enthusiasm_line_suggests_laugh(self):
         text = "There's always a bit of sales enthusiasm!"
         self.assertEqual(suggest_cue(text), "laugh")

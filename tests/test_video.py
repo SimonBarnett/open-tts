@@ -31,6 +31,17 @@ class TestExpressionCues(unittest.TestCase):
             self.assertNotEqual(actual, vowel_px)
 
 
+class TestUnknownCue(unittest.TestCase):
+    def test_unknown_cue_fails_closed_in_frame_for_line(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            line = {"id": 1, "text": "Hi", "cue": "wink"}
+            with self.assertRaises(ValueError):
+                _frame_for_line(sheet, line, 0.0)
+
+
 class TestPauseCue(unittest.TestCase):
     def test_pause_cue_uses_pause_cell_not_vowel(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -76,14 +87,16 @@ class TestDualLayout(unittest.TestCase):
                 host_sheet, {"id": 1, "text": "talk", "cue": "pause"}, 0.0
             )
             right = _frame_for_line(
-                guest_sheet, {"id": 2, "text": "", "cue": "pause"}, 0.0
+                guest_sheet, {"id": 2, "text": "", "cue": "listen"}, 0.0
             )
             out = root / "split.png"
             _compose_split_frame(left, right, (128, 64), out)
             img = Image.open(out)
             self.assertEqual(img.size, (128, 64))
             host_px = host_sheet.pause().resize((64, 64), Image.Resampling.LANCZOS)
-            guest_px = guest_sheet.pause().resize((64, 64), Image.Resampling.LANCZOS)
+            guest_px = guest_sheet.expression_frames("listen")[0].resize(
+                (64, 64), Image.Resampling.LANCZOS
+            )
             self.assertEqual(img.getpixel((5, 5)), host_px.convert("RGB").getpixel((5, 5)))
             self.assertEqual(img.getpixel((69, 5)), guest_px.convert("RGB").getpixel((5, 5)))
 

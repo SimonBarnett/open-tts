@@ -7,6 +7,8 @@ from pathlib import Path
 from PIL import Image
 
 # Grid contract: 6 columns; same (col, row) for every character sheet.
+# Row 0: visemes a–u + pause. Row 1 (EXPRESSION_ROW): surprise, laugh, smile,
+# concern, think, listen — see EXPRESSION_COL. Rows 2+ hold animation strips.
 COLS = 6
 VISEME_ROW = 0
 EXPRESSION_ROW = 1

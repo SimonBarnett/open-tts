@@ -3,14 +3,40 @@ import unittest
 from pathlib import Path
 
 from open_tts.sprite import (
+    ANIMATION_START_ROW,
     EXPRESSION_COL,
     VISEME_COL,
     CharacterSheet,
     ensure_placeholder_sheet,
 )
 
+LOCKED_EXPRESSION_COL = {
+    "surprise": 0,
+    "laugh": 1,
+    "smile": 2,
+    "concern": 3,
+    "think": 4,
+    "listen": 5,
+}
+
 
 class TestSpriteLayout(unittest.TestCase):
+    def test_expression_col_locked_six_wide_row(self):
+        self.assertEqual(EXPRESSION_COL, LOCKED_EXPRESSION_COL)
+
+    def test_expression_frames_smile_not_pause_stand_in(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            strip_px = sheet.cell(
+                EXPRESSION_COL["smile"], ANIMATION_START_ROW
+            ).getpixel((0, 0))
+            pause_px = sheet.pause().getpixel((0, 0))
+            frame_px = sheet.expression_frames("smile")[0].getpixel((0, 0))
+            self.assertEqual(frame_px, strip_px)
+            self.assertNotEqual(frame_px, pause_px)
+
     def test_shared_indices_across_characters(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
