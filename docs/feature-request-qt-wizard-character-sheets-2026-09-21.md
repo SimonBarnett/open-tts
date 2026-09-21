@@ -10,7 +10,7 @@ Depends on issue #1 engine (`CharacterSheet`, `VISEME_COL` / `EXPRESSION_COL`). 
 
 ## Gap vs current tree
 
-Characters are `voice_id` + PNG path; missing sheets become colour-block placeholders. Scripts are raw YAML. One hard-coded `cue: laugh` on the partner show. No UI.
+Landed on `main` via PR #139 / MRB #140 (`2948d4c`). This FR tracks acceptance and docs; board delivery is an open `work/<job>` PR (MRB #146), not a merged `main` merge commit such as PR #143.
 
 ## Locked
 
@@ -25,9 +25,9 @@ Replacing Grok TTS voices or audiotour JSON. Full lip-sync ML. Authoring the thr
 
 ## Acceptance
 
-- [ ] `python -m open_tts.studio` opens a Qt wizard (PySide6).
-- [ ] Character flow: description → image LLM still → Keep / Again until lock → sheet on shared indices.
-- [ ] Saved character appears in `registry.yaml`; `CharacterSheet.laugh()` / `.viseme("o")` match Leo/Eve cells.
-- [ ] Script editor loads and saves #1-compatible YAML; animation column auto-fills and can be overridden.
-- [ ] Partner line "There's always a bit of sales enthusiasm!" suggests `laugh` and can be set to `pause`.
-- [ ] No API keys in the repo. No new per-show Python mux script.
+- [x] `python -m open_tts.studio` opens a Qt wizard (PySide6).
+- [x] Character flow: description → image LLM still → Keep / Again until lock → sheet on shared indices.
+- [x] Saved character appears in `registry.yaml`; `CharacterSheet.laugh()` / `.viseme("o")` match Leo/Eve cells.
+- [x] Script editor loads and saves #1-compatible YAML; animation column auto-fills and can be overridden.
+- [x] Partner line "There's always a bit of sales enthusiasm!" suggests `laugh` and can be set to `pause`.
+- [x] No API keys in the repo. No new per-show Python mux script.
