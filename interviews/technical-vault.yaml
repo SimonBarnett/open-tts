@@ -1,0 +1,58 @@
+title: Technical vault deep-dive (Leo / Eve)
+characters:
+  host: leo
+  guest: eve
+layout:
+  dual_start_turns: 6
+  dual_end_turns: 5
+script:
+  - { speaker: leo, text: "Welcome back everyone." }
+  - { speaker: leo, text: "Today I'm delighted to be joined once again by Eve from Club Madeira." }
+  - { speaker: leo, text: "In our previous conversation we covered the overall Smart Catalogue concept." }
+  - { speaker: leo, text: "Today we're going to dig into some of the more technical questions." }
+  - { speaker: leo, text: "Eve, thank you so much for joining us again." }
+  - { speaker: eve, text: "Thank you Leo, it's a pleasure to be back." }
+  - { speaker: leo, text: "Why did you choose to build a product vault instead of individual catalogs?" }
+  - { speaker: eve, text: "A catalog is a collection of categories belonging to a club." }
+  - { speaker: eve, text: "A product may exist in many categories and on many clubs." }
+  - { speaker: eve, text: "First, you need to make a list of products and then decide which catalog or club they are relevant to." }
+  - { speaker: leo, text: "How do products enter the product vault?" }
+  - { speaker: eve, text: "Through merchant synchronization, we rotate through all the merchants' API keys in the system." }
+  - { speaker: eve, text: "Each key gives us access to a merchant's online catalog." }
+  - { speaker: eve, text: "The key can be from any of the common product stores like Awin, Wix, WooCommerce, Shopify, etcetera." }
+  - { speaker: eve, text: "We download the product details, normalize them into a standard format, and save them to the RDS, our vault." }
+  - { speaker: leo, text: "How are products organized once they're there?" }
+  - { speaker: eve, text: "At this point, it's just a big Excel-like sheet of product data." }
+  - { speaker: eve, text: "They are organized to be optimal for text searches." }
+  - { speaker: leo, text: "What role does AI play in managing the product vault?" }
+  - { speaker: eve, text: "None at the ingestion stage." }
+  - { speaker: eve, text: "We have a list of API keys and functions that know how to pull products from each system." }
+  - { speaker: eve, text: "The AI only comes in when we are choosing which products are relevant to a given community, category, or subcategory." }
+  - { speaker: leo, text: "How does a new catalog get created from the product vault?" }
+  - { speaker: eve, text: "Actually, a new catalog is created from the club website the partner identified during the invite." }
+  - { speaker: eve, text: "The AI reviews the website, identifies the audience, and works up a marketing report listing all the affiliate opportunities." }
+  - { speaker: eve, text: "Then we feed all of that back to the AI as context for choosing the best categories." }
+  - { speaker: eve, text: "For each category, it returns positive and negative keywords and the meta descriptions we use for searches." }
+  - { speaker: leo, text: "What happens when we want to put products into those categories?" }
+  - { speaker: eve, text: "That's when the vault becomes really useful." }
+  - { speaker: eve, text: "We do an initial text search across Amazon, eBay, and our vault to find candidate products, then we give the AI the full context for the category plus the candidate products including images, descriptions, and features." }
+  - { speaker: eve, text: "For each product, the AI returns a simple yes or no with a reason." }
+  - { speaker: leo, text: "How does smartphone administration work and why was it important?" }
+  - { speaker: eve, text: "The smartphone interface is just the website on a small screen, but this form factor is very important for customers." }
+  - { speaker: eve, text: "Club admins, many of whom use their mobile as their primary device, it lowers both the cost and technical barriers for participation." }
+  - { speaker: leo, text: "What happens when a participating supplier changes a product, price, or availability?" }
+  - { speaker: eve, text: "Merchant synchronization automatically inserts new products, updates existing ones, and removes any that are no longer listed." }
+  - { speaker: eve, text: "This runs every seventy-two hours or so." }
+  - { speaker: leo, text: "What makes the architecture scalable for different markets and countries?" }
+  - { speaker: eve, text: "The region-agnostic AWS backend means we can spin up separate instances in each Amazon region." }
+  - { speaker: eve, text: "The front-end AI assistant is also region-aware and supports multiple languages and accents." }
+  - { speaker: leo, text: "Looking back, which architectural decision are you most proud of?" }
+  - { speaker: eve, text: "The SQS queues are a work of art." }
+  - { speaker: eve, text: "They're capable of downloading eight hundred K products an hour and orchestrating all the searches required to maintain the catalogs with a massively scalable workload." }
+  - { speaker: leo, text: "If you had one minute to explain the product vault to an investor, what would you say?" }
+  - { speaker: eve, text: "It's a shiny, carefully tuned database." }
+  - { speaker: eve, text: "The clever bit is in how we populate the data into it from multiple third-party systems using merchant API keys and how we exploit that data to find relevant products that the club's members will love." }
+  - { speaker: leo, text: "Thank you so much, Eve." }
+  - { speaker: leo, text: "I'm really excited to see this smart catalog go forward with Club Madeira." }
+  - { speaker: eve, text: "Thank you, Leo." }
+  - { speaker: eve, text: "It was a pleasure speaking with you." }
