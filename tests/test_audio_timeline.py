@@ -42,6 +42,7 @@ class TestAudioTimeline(unittest.TestCase):
                 _tone_wav(w, 1.2)
                 wavs.append(w)
             full, segments = build_full_interview(lines, work / "merge", wavs)
+            self.assertTrue(all("phones" in s and s["phones"] for s in segments))
             drift = check_caption_drift(segments, lines, full)
             self.assertLessEqual(drift, MAX_SRT_AUDIO_DRIFT_SEC)
             self.assertGreater(check_caption_drift(segments, lines, full), -1)
