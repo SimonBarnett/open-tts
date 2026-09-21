@@ -1,6 +1,6 @@
 import unittest
 
-from open_tts.cues import suggest_cue, validate_cue
+from open_tts.cues import AUTO, suggest_cue, cue_to_yaml_value, validate_cue
 
 
 class TestSuggestCue(unittest.TestCase):
@@ -30,6 +30,12 @@ class TestValidateCue(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             validate_cue("wink")
         self.assertIn("wink", str(ctx.exception))
+
+
+class TestStudioYamlCue(unittest.TestCase):
+    def test_auto_omits_cue_in_yaml(self):
+        self.assertIsNone(cue_to_yaml_value(AUTO))
+        self.assertEqual(cue_to_yaml_value("pause"), "pause")
 
 
 if __name__ == "__main__":

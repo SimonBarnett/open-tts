@@ -46,6 +46,39 @@ def normalized_lines(data: dict[str, Any]) -> list[dict]:
     return lines
 
 
+def save_interview(path: Path, data: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        yaml.safe_dump(data, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
+    )
+
+
+def interview_document(
+    *,
+    title: str,
+    characters: dict[str, str],
+    layout: dict[str, int],
+    script_rows: list[dict[str, str]],
+) -> dict[str, Any]:
+    script: list[dict[str, str]] = []
+    for row in script_rows:
+        entry: dict[str, str] = {
+            "speaker": row["speaker"],
+            "text": row["text"],
+        }
+        cue = row.get("cue")
+        if cue:
+            entry["cue"] = cue
+        script.append(entry)
+    return {
+        "title": title,
+        "characters": characters,
+        "layout": layout,
+        "script": script,
+    }
+
+
 def layout_options(data: dict[str, Any]) -> dict[str, str | int]:
     layout = data.get("layout") or {}
     characters = data.get("characters") or {}

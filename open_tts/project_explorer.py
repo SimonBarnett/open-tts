@@ -1,4 +1,4 @@
-"""Studio entry (explorer stub until #13 Qt runtime is merged)."""
+"""CLI project lister (``python -m open_tts studio``); Qt wizard is ``python -m open_tts.studio``."""
 
 from __future__ import annotations
 

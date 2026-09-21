@@ -11,7 +11,7 @@ COLS = 6
 VISEME_ROW = 0
 EXPRESSION_ROW = 1
 ANIMATION_START_ROW = 2
-ANIMATION_FRAME_ROWS = 2
+ANIMATION_FRAMES = COLS  # six frames across one row per expression
 
 VISEME_COL = {
     "a": 0,
@@ -30,6 +30,8 @@ EXPRESSION_COL = {
     "think": 4,
     "listen": 5,
 }
+
+SHEET_ROWS = ANIMATION_START_ROW + len(EXPRESSION_COL)
 
 DEFAULT_CELL_PX = 128
 
@@ -89,13 +91,11 @@ class CharacterSheet:
         return self.cell(EXPRESSION_COL["listen"], EXPRESSION_ROW)
 
     def expression_frames(self, expression: str) -> list[Image.Image]:
-        col = EXPRESSION_COL.get(expression)
-        if col is None:
+        expr_col = EXPRESSION_COL.get(expression)
+        if expr_col is None:
             return [self.pause()]
-        frames: list[Image.Image] = []
-        for row in range(ANIMATION_START_ROW, ANIMATION_START_ROW + ANIMATION_FRAME_ROWS):
-            frames.append(self.cell(col, row))
-        return frames
+        anim_row = ANIMATION_START_ROW + expr_col
+        return [self.cell(frame_col, anim_row) for frame_col in range(ANIMATION_FRAMES)]
 
     @staticmethod
     def viseme_col(name: str) -> int:
@@ -115,8 +115,7 @@ def ensure_placeholder_sheet(path: Path, label: str, cell_px: int = DEFAULT_CELL
     if path.is_file():
         return
     path.parent.mkdir(parents=True, exist_ok=True)
-    rows = ANIMATION_START_ROW + ANIMATION_FRAME_ROWS
-    w, h = COLS * cell_px, rows * cell_px
+    w, h = COLS * cell_px, SHEET_ROWS * cell_px
     img = Image.new("RGBA", (w, h), (40, 44, 52, 255))
     colors = {
         "a": (220, 80, 80),
@@ -138,10 +137,11 @@ def ensure_placeholder_sheet(path: Path, label: str, cell_px: int = DEFAULT_CELL
     }
     for name, col in EXPRESSION_COL.items():
         _fill_cell(img, col, EXPRESSION_ROW, cell_px, expression_colors[name])
-    for row in range(ANIMATION_START_ROW, ANIMATION_START_ROW + ANIMATION_FRAME_ROWS):
+    for expr_col in EXPRESSION_COL.values():
+        anim_row = ANIMATION_START_ROW + expr_col
         for col in range(COLS):
-            shade = 60 + (row + col) * 8
-            _fill_cell(img, col, row, cell_px, (shade, shade + 20, shade + 40))
+            shade = 60 + (anim_row + col) * 8
+            _fill_cell(img, col, anim_row, cell_px, (shade, shade + 20, shade + 40))
     _draw_label(img, label, cell_px)
     img.save(path)
 
@@ -161,5 +161,3 @@ def _draw_label(img: Image.Image, label: str, cell_px: int) -> None:
         for dy in range(-4, 5):
             if 0 <= x0 + dx < img.width and 0 <= y0 + dy < img.height:
                 img.putpixel((x0 + dx, y0 + dy), (255, 255, 255, 255))
-
-
