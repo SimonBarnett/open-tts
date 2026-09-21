@@ -8,10 +8,9 @@ from functools import lru_cache
 
 import pronouncing
 
-# Until #11 adds consonant mouth cells, sheet lookup maps these to pause.
-SHEET_CONSONANT_STANDINS = frozenset({"mbp", "fv", "th", "l", "sz", "sh"})
-
-SHEET_VISEMES = frozenset({"a", "e", "i", "o", "u", "pause"})
+SHEET_VISEMES = frozenset(
+    {"a", "e", "i", "o", "u", "pause", "mbp", "fv", "th", "l", "sz", "sh"}
+)
 
 _VISEME_PHONES: dict[str, tuple[str, ...]] = {
     "i": ("IY", "IH", "Y", "EY"),
@@ -68,8 +67,6 @@ def phone_to_viseme(phone: str) -> str:
 
 def sheet_viseme(viseme: str) -> str:
     key = viseme.lower()
-    if key in SHEET_CONSONANT_STANDINS:
-        return "pause"
     if key in SHEET_VISEMES:
         return key
     return "pause"
