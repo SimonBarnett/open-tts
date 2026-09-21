@@ -172,7 +172,7 @@ def write_timings(path: Path, segments: list[dict]) -> None:
     path.write_text(json.dumps(segments, indent=2), encoding="utf-8")
 
 
-def expected_full_duration(segments: list[dict], lines: list[dict]) -> float:
+def expected_full_duration(segments: list[dict]) -> float:
     """Merged length: last speech end (starts already include inter-line pauses)."""
     if not segments:
         return 0.0
@@ -183,6 +183,6 @@ def check_caption_drift(
     segments: list[dict], lines: list[dict], audio_path: Path
 ) -> float:
     """Return |expected merge length − decoded audio length| in seconds."""
-    expected = expected_full_duration(segments, lines)
+    expected = expected_full_duration(segments)
     audio_dur = media_duration(audio_path)
     return abs(audio_dur - expected)

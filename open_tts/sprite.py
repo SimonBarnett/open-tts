@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
-
 from PIL import Image
 
 # Grid contract: 6 columns; same (col, row) for every character sheet.
@@ -141,9 +139,3 @@ def _draw_label(img: Image.Image, label: str, cell_px: int) -> None:
                 img.putpixel((x0 + dx, y0 + dy), (255, 255, 255, 255))
 
 
-def same_layout_indices(char_a: CharacterSheet, char_b: CharacterSheet) -> bool:
-    """Both characters use the shared grid indices for laugh and viseme O."""
-    return (
-        CharacterSheet.viseme_col("o") == CharacterSheet.viseme_col("o")
-        and EXPRESSION_COL["laugh"] == EXPRESSION_COL["laugh"]
-    )
