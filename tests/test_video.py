@@ -5,6 +5,7 @@ from pathlib import Path
 from PIL import Image
 
 from open_tts.sprite import VISEME_COL, ensure_placeholder_sheet, CharacterSheet
+from open_tts.visemes import build_phone_track
 from open_tts.video import (
     _compose_split_frame,
     _frame_for_line,
@@ -67,6 +68,28 @@ class TestDualLayout(unittest.TestCase):
             guest_px = guest_sheet.pause().resize((64, 64), Image.Resampling.LANCZOS)
             self.assertEqual(img.getpixel((5, 5)), host_px.convert("RGB").getpixel((5, 5)))
             self.assertEqual(img.getpixel((69, 5)), guest_px.convert("RGB").getpixel((5, 5)))
+
+
+class TestPhonemeMouth(unittest.TestCase):
+    def test_vault_uses_fv_not_spelling_vowel(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            track = build_phone_track("vault", 1.0)
+            line = {
+                "id": 3,
+                "text": "vault",
+                "duration": 1.0,
+                "phones": track,
+            }
+            t_fv = track[0]["t0"] + 0.01
+            frame_path = _frame_for_line(sheet, line, t_fv)
+            fv_px = sheet.fv().getpixel((0, 0))
+            vowel_a_px = sheet.viseme("a").getpixel((0, 0))
+            actual = Image.open(frame_path).getpixel((0, 0))
+            self.assertEqual(actual, fv_px)
+            self.assertNotEqual(actual, vowel_a_px)
 
 
 if __name__ == "__main__":

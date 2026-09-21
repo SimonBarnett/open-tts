@@ -7,6 +7,8 @@ import subprocess
 import wave
 from pathlib import Path
 
+from open_tts.visemes import build_phone_track
+
 SAMPLE_RATE = 24000
 SAMPLE_WIDTH = 2  # 16-bit PCM
 CHANNELS = 1
@@ -143,18 +145,21 @@ def build_full_interview(
         dur = wav_duration_seconds(wav)
         start = cursor_sec
         end = start + dur
-        segments.append(
-            {
-                "id": i + 1,
-                "speaker": line["speaker"],
-                "text": line["text"],
-                "file": line.get("file", wav.name),
-                "start": round(start, 6),
-                "end": round(end, 6),
-                "duration": round(dur, 6),
-                "cue": line.get("cue"),
-            }
-        )
+        seg = {
+            "id": i + 1,
+            "speaker": line["speaker"],
+            "text": line["text"],
+            "file": line.get("file", wav.name),
+            "start": round(start, 6),
+            "end": round(end, 6),
+            "duration": round(dur, 6),
+            "cue": line.get("cue"),
+        }
+        if line.get("phones"):
+            seg["phones"] = line["phones"]
+        else:
+            seg["phones"] = build_phone_track(line["text"], dur)
+        segments.append(seg)
         concat_list.append(wav)
         cursor_sec = end
         if i + 1 < len(lines):
