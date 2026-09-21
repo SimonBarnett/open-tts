@@ -5,6 +5,7 @@ from pathlib import Path
 from PIL import Image
 
 from open_tts.sprite import VISEME_COL, ensure_placeholder_sheet, CharacterSheet
+from open_tts.visemes import build_phone_intervals
 from open_tts.video import (
     _compose_split_frame,
     _frame_for_line,
@@ -67,6 +68,68 @@ class TestDualLayout(unittest.TestCase):
             guest_px = guest_sheet.pause().resize((64, 64), Image.Resampling.LANCZOS)
             self.assertEqual(img.getpixel((5, 5)), host_px.convert("RGB").getpixel((5, 5)))
             self.assertEqual(img.getpixel((69, 5)), guest_px.convert("RGB").getpixel((5, 5)))
+
+
+class TestPhonemeMouth(unittest.TestCase):
+    def test_map_paints_mbp_cell(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            intervals = build_phone_intervals("map", 1.0)
+            m_seg = next(p for p in intervals if p["phone"] == "M")
+            line = {
+                "id": 1,
+                "text": "map",
+                "duration": 1.0,
+                "phones": intervals,
+            }
+            t_m = (float(m_seg["t0"]) + float(m_seg["t1"])) / 2
+            frame_path = _frame_for_line(sheet, line, t_m)
+            mbp_px = sheet.mbp().getpixel((0, 0))
+            pause_px = sheet.pause().getpixel((0, 0))
+            actual = Image.open(frame_path).getpixel((0, 0))
+            self.assertEqual(actual, mbp_px)
+            self.assertNotEqual(actual, pause_px)
+
+    def test_vault_uses_fv_not_spelling_vowel(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            intervals = build_phone_intervals("vault", 1.0)
+            line = {
+                "id": 3,
+                "text": "vault",
+                "duration": 1.0,
+                "phones": intervals,
+            }
+            t_fv = float(intervals[0]["t0"]) + 0.01
+            frame_path = _frame_for_line(sheet, line, t_fv)
+            fv_px = sheet.fv().getpixel((0, 0))
+            vowel_a_px = sheet.viseme("a").getpixel((0, 0))
+            actual = Image.open(frame_path).getpixel((0, 0))
+            self.assertEqual(actual, fv_px)
+            self.assertNotEqual(actual, vowel_a_px)
+
+    def test_beat_paints_i_vowel_cell(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            intervals = build_phone_intervals("beat", 1.0)
+            iy = next(p for p in intervals if p["phone"] == "IY")
+            line = {
+                "id": 4,
+                "text": "beat",
+                "duration": 1.0,
+                "phones": intervals,
+            }
+            t_i = (float(iy["t0"]) + float(iy["t1"])) / 2
+            frame_path = _frame_for_line(sheet, line, t_i)
+            i_px = sheet.viseme("i").getpixel((0, 0))
+            actual = Image.open(frame_path).getpixel((0, 0))
+            self.assertEqual(actual, i_px)
 
 
 if __name__ == "__main__":
