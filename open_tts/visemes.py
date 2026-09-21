@@ -159,6 +159,19 @@ def _weighted_intervals(
     return out
 
 
+def _char_end_times(graph_times: list) -> list[float] | None:
+    ends: list[float] = []
+    for entry in graph_times:
+        try:
+            if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                ends.append(float(entry[1]))
+            else:
+                ends.append(float(entry))
+        except (TypeError, ValueError):
+            return None
+    return ends
+
+
 def _align_from_tts_timestamps(
     units: list[_AlignUnit],
     duration: float,
@@ -166,11 +179,8 @@ def _align_from_tts_timestamps(
     graph_times: list,
 ) -> list[dict[str, float | str]] | None:
     """Spread phone units across TTS character timestamps when lengths match."""
-    if not graph_times or len(graph_chars) != len(graph_times):
-        return None
-    try:
-        times = [float(x) for x in graph_times]
-    except (TypeError, ValueError):
+    times = _char_end_times(graph_times)
+    if not times or len(graph_chars) != len(times):
         return None
     if not times or times[-1] <= 0:
         return None
