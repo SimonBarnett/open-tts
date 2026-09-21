@@ -1,0 +1,90 @@
+import unittest
+
+from open_tts.studio.dirty import (
+    block_index_for_line,
+    dirty_block_indices_for_line,
+)
+from open_tts.video import merged_speaker_blocks
+
+
+def _sample_segments() -> list[dict]:
+    return [
+        {
+            "id": i,
+            "speaker": "leo" if i <= 4 else "eve",
+            "start": float(i - 1),
+            "end": float(i),
+            "duration": 1.0,
+        }
+        for i in range(1, 11)
+    ]
+
+
+class TestDirtyBlocks(unittest.TestCase):
+    def test_block_index_for_line(self):
+        segments = _sample_segments()
+        idx = block_index_for_line(
+            3, segments, audio_duration=20.0, dual_start=4, dual_end=5
+        )
+        self.assertEqual(idx, 0)
+        idx_eve = block_index_for_line(
+            7, segments, audio_duration=20.0, dual_start=4, dual_end=5
+        )
+        self.assertEqual(idx_eve, 1)
+
+    def test_cue_change_marks_single_block(self):
+        segments = _sample_segments()
+        dirty = dirty_block_indices_for_line(
+            7,
+            segments,
+            audio_duration=20.0,
+            dual_start=4,
+            dual_end=5,
+            cue_changed=True,
+        )
+        blocks = merged_speaker_blocks(segments, 20.0, 4, 5)
+        self.assertEqual(dirty, {1})
+        self.assertEqual(len(blocks), 2)
+
+    def test_speaker_change_marks_all_blocks(self):
+        segments = _sample_segments()
+        dirty = dirty_block_indices_for_line(
+            5,
+            segments,
+            audio_duration=20.0,
+            dual_start=4,
+            dual_end=5,
+            speaker_changed=True,
+        )
+        self.assertEqual(dirty, {0, 1})
+
+    def test_text_change_marks_containing_block(self):
+        segments = _sample_segments()
+        dirty = dirty_block_indices_for_line(
+            2,
+            segments,
+            audio_duration=20.0,
+            dual_start=4,
+            dual_end=5,
+            text_changed=True,
+        )
+        self.assertEqual(dirty, {0})
+
+
+class TestResolveProject(unittest.TestCase):
+    def test_output_dir_to_yaml(self):
+        from pathlib import Path
+
+        from open_tts.studio.project import resolve_edit_target
+
+        root = Path(__file__).resolve().parent.parent
+        out = root / "interviews" / "output" / "partner-smart-catalogue"
+        if not (out / "timings.json").is_file():
+            self.skipTest("partner-smart-catalogue output not present")
+        proj = resolve_edit_target(out)
+        self.assertEqual(proj.yaml_path.name, "partner-smart-catalogue.yaml")
+        self.assertEqual(proj.output_dir, out.resolve())
+
+
+if __name__ == "__main__":
+    unittest.main()

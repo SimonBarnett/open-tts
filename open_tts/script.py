@@ -42,6 +42,37 @@ def normalized_lines(data: dict[str, Any]) -> list[dict]:
     return lines
 
 
+def apply_line_to_script(
+    data: dict[str, Any],
+    line_index: int,
+    *,
+    speaker: str,
+    text: str,
+    cue: str | None,
+) -> None:
+    """Update one script entry in place (#1 schema). line_index is 0-based."""
+    script = data["script"]
+    if line_index < 0 or line_index >= len(script):
+        raise IndexError(f"Line index out of range: {line_index}")
+    entry = script[line_index]
+    if not isinstance(entry, dict):
+        raise ValueError("Script entry must be a mapping")
+    entry["speaker"] = speaker
+    entry["text"] = text
+    if cue:
+        entry["cue"] = cue
+    elif "cue" in entry:
+        del entry["cue"]
+
+
+def save_interview(data: dict[str, Any], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        yaml.safe_dump(data, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
+    )
+
+
 def layout_options(data: dict[str, Any]) -> dict[str, str | int]:
     layout = data.get("layout") or {}
     characters = data.get("characters") or {}
