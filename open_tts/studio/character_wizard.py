@@ -139,10 +139,14 @@ class CharacterWizard(QWidget):
             self._show_still(path)
 
     def _on_bake(self) -> None:
-        hero = self._locked_hero or (self._history[-1] if self._history else None)
-        if not hero:
-            QMessageBox.information(self, "Bake sheet", "Lock or generate a hero still first.")
+        if not self._locked_hero:
+            QMessageBox.information(
+                self,
+                "Bake sheet",
+                "Keep a hero still before baking the sheet.",
+            )
             return
+        hero = self._locked_hero
         char_id = self.id_edit.text().strip() or "character"
         dest = repo_root() / "characters" / f"{char_id}.png"
         try:

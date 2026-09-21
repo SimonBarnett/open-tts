@@ -53,6 +53,21 @@ class TestSheetFromHero(unittest.TestCase):
             self.assertEqual(EXPRESSION_COL["laugh"], 1)
             self.assertEqual(baked.laugh().size, placeholder.laugh().size)
 
+    def test_laugh_strip_is_six_frames_across(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sheet_path = root / "char.png"
+            ensure_placeholder_sheet(sheet_path, "demo")
+            sheet = CharacterSheet(sheet_path)
+            frames = sheet.expression_frames("laugh")
+            self.assertEqual(len(frames), 6)
+            corner_colors = [frame.getpixel((0, 0)) for frame in frames]
+            self.assertEqual(
+                len(set(corner_colors)),
+                6,
+                "laugh strip must span six columns, not a single column",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

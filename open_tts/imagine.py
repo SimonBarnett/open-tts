@@ -12,12 +12,7 @@ from pathlib import Path
 import requests
 from PIL import Image, ImageEnhance
 
-from open_tts.sprite import (
-    ANIMATION_FRAME_ROWS,
-    ANIMATION_START_ROW,
-    COLS,
-    DEFAULT_CELL_PX,
-)
+from open_tts.sprite import COLS, DEFAULT_CELL_PX, SHEET_ROWS
 
 
 def _api_key() -> str | None:
@@ -27,10 +22,9 @@ def _api_key() -> str | None:
 def build_sheet_from_hero(hero: Path, dest: Path, cell_px: int = DEFAULT_CELL_PX) -> Path:
     """Bake a shared-grid sheet by compositing variants of the locked hero still."""
     hero_img = Image.open(hero).convert("RGBA")
-    rows = ANIMATION_START_ROW + ANIMATION_FRAME_ROWS
-    sheet = Image.new("RGBA", (COLS * cell_px, rows * cell_px), (32, 36, 44, 255))
+    sheet = Image.new("RGBA", (COLS * cell_px, SHEET_ROWS * cell_px), (32, 36, 44, 255))
 
-    for row in range(rows):
+    for row in range(SHEET_ROWS):
         for col in range(COLS):
             cell = _hero_cell_variant(hero_img, col, row, cell_px)
             sheet.paste(cell, (col * cell_px, row * cell_px))
