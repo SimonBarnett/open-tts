@@ -29,6 +29,8 @@ class TestSpriteLayout(unittest.TestCase):
             laugh_a = a.laugh().getpixel((0, 0))
             laugh_b = b.laugh().getpixel((0, 0))
             self.assertEqual(laugh_a, laugh_b)
+            self.assertEqual(a.smile().getpixel((0, 0)), b.smile().getpixel((0, 0)))
+            self.assertEqual(a.listen().getpixel((0, 0)), b.listen().getpixel((0, 0)))
 
 
 if __name__ == "__main__":

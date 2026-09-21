@@ -11,7 +11,7 @@ from PIL import Image
 
 from open_tts.audio import media_duration
 from open_tts.characters import load_registry, sheet_for
-from open_tts.sprite import CharacterSheet, viseme_sequence_for_text
+from open_tts.sprite import EXPRESSION_COL, CharacterSheet, viseme_sequence_for_text
 
 
 def run(cmd: list) -> None:
@@ -45,12 +45,12 @@ def merged_speaker_blocks(
     return merged
 
 
-_PAUSE_LINE = {"id": 0, "text": "", "cue": "pause"}
+_NONSPEAKING_LINE = {"id": 0, "text": "", "cue": "listen"}
 
 
 def _frame_for_line(sheet: CharacterSheet, line: dict, t_in_line: float) -> Path:
     cue = (line.get("cue") or "").lower()
-    if cue in ("laugh", "surprise"):
+    if cue in EXPRESSION_COL:
         frames = sheet.expression_frames(cue)
         idx = int(t_in_line * 8) % len(frames)
         img = frames[idx]
@@ -125,13 +125,13 @@ def render_block_clip(
         if block.get("mode") == "split":
             if speaker == host_id:
                 left_path = _frame_for_line(sheet, line, t_line)
-                right_path = _frame_for_line(sheets[guest_id], _PAUSE_LINE, 0.0)
+                right_path = _frame_for_line(sheets[guest_id], _NONSPEAKING_LINE, 0.0)
             elif speaker == guest_id:
-                left_path = _frame_for_line(sheets[host_id], _PAUSE_LINE, 0.0)
+                left_path = _frame_for_line(sheets[host_id], _NONSPEAKING_LINE, 0.0)
                 right_path = _frame_for_line(sheet, line, t_line)
             else:
-                left_path = _frame_for_line(sheets[host_id], _PAUSE_LINE, 0.0)
-                right_path = _frame_for_line(sheets[guest_id], _PAUSE_LINE, 0.0)
+                left_path = _frame_for_line(sheets[host_id], _NONSPEAKING_LINE, 0.0)
+                right_path = _frame_for_line(sheets[guest_id], _NONSPEAKING_LINE, 0.0)
             _compose_split_frame(left_path, right_path, size, dest)
         else:
             frame_path = _frame_for_line(sheet, line, t_line)

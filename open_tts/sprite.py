@@ -7,6 +7,9 @@ from pathlib import Path
 from PIL import Image
 
 # Grid contract: 6 columns; same (col, row) for every character sheet.
+# Row 0 (VISEME_ROW): a, e, i, o, u, pause — columns 0–5.
+# Row 1 (EXPRESSION_ROW): surprise, laugh, smile, concern, think, listen — columns 0–5.
+# Rows 2+ : six-frame animation strips, one row per expression id (see EXPRESSION_COL).
 COLS = 6
 VISEME_ROW = 0
 EXPRESSION_ROW = 1
@@ -25,6 +28,10 @@ VISEME_COL = {
 EXPRESSION_COL = {
     "surprise": 0,
     "laugh": 1,
+    "smile": 2,
+    "concern": 3,
+    "think": 4,
+    "listen": 5,
 }
 
 SHEET_ROWS = ANIMATION_START_ROW + len(EXPRESSION_COL)
@@ -74,10 +81,23 @@ class CharacterSheet:
     def laugh(self) -> Image.Image:
         return self.cell(EXPRESSION_COL["laugh"], EXPRESSION_ROW)
 
+    def smile(self) -> Image.Image:
+        return self.cell(EXPRESSION_COL["smile"], EXPRESSION_ROW)
+
+    def concern(self) -> Image.Image:
+        return self.cell(EXPRESSION_COL["concern"], EXPRESSION_ROW)
+
+    def think(self) -> Image.Image:
+        return self.cell(EXPRESSION_COL["think"], EXPRESSION_ROW)
+
+    def listen(self) -> Image.Image:
+        return self.cell(EXPRESSION_COL["listen"], EXPRESSION_ROW)
+
     def expression_frames(self, expression: str) -> list[Image.Image]:
-        expr_col = EXPRESSION_COL.get(expression)
-        if expr_col is None:
-            return [self.pause()]
+        key = expression.lower()
+        if key not in EXPRESSION_COL:
+            raise ValueError(f"Unknown expression id: {expression}")
+        expr_col = EXPRESSION_COL[key]
         anim_row = ANIMATION_START_ROW + expr_col
         return [self.cell(frame_col, anim_row) for frame_col in range(ANIMATION_FRAMES)]
 
@@ -111,8 +131,16 @@ def ensure_placeholder_sheet(path: Path, label: str, cell_px: int = DEFAULT_CELL
     }
     for name, col in VISEME_COL.items():
         _fill_cell(img, col, VISEME_ROW, cell_px, colors[name])
-    _fill_cell(img, EXPRESSION_COL["surprise"], EXPRESSION_ROW, cell_px, (255, 200, 80))
-    _fill_cell(img, EXPRESSION_COL["laugh"], EXPRESSION_ROW, cell_px, (255, 120, 180))
+    expression_colors = {
+        "surprise": (255, 200, 80),
+        "laugh": (255, 120, 180),
+        "smile": (120, 220, 140),
+        "concern": (200, 100, 100),
+        "think": (140, 180, 220),
+        "listen": (150, 150, 165),
+    }
+    for name, col in EXPRESSION_COL.items():
+        _fill_cell(img, col, EXPRESSION_ROW, cell_px, expression_colors[name])
     for expr_col in EXPRESSION_COL.values():
         anim_row = ANIMATION_START_ROW + expr_col
         for col in range(COLS):

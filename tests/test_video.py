@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from open_tts.sprite import VISEME_COL, ensure_placeholder_sheet, CharacterSheet
+from open_tts.sprite import EXPRESSION_COL, VISEME_COL, ensure_placeholder_sheet, CharacterSheet
 from open_tts.video import (
     _compose_split_frame,
     _frame_for_line,
@@ -30,6 +30,24 @@ class TestPauseCue(unittest.TestCase):
             self.assertEqual(actual, pause_px)
             self.assertNotEqual(actual, vowel_px)
             self.assertEqual(VISEME_COL["pause"], 5)
+
+    def test_smile_cue_uses_smile_expression_not_vowel(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet_path = Path(tmp) / "leo.png"
+            ensure_placeholder_sheet(sheet_path, "leo")
+            sheet = CharacterSheet(sheet_path)
+            line = {
+                "id": 3,
+                "text": "Thank you for joining us today.",
+                "cue": "smile",
+            }
+            frame_path = _frame_for_line(sheet, line, 0.0)
+            smile_px = sheet.expression_frames("smile")[0].getpixel((0, 0))
+            vowel_px = sheet.viseme("e").getpixel((0, 0))
+            actual = Image.open(frame_path).getpixel((0, 0))
+            self.assertEqual(actual, smile_px)
+            self.assertNotEqual(actual, vowel_px)
+            self.assertEqual(EXPRESSION_COL["smile"], 2)
 
 
 class TestDualLayout(unittest.TestCase):

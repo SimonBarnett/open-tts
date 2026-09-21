@@ -6,35 +6,57 @@ AUTO = "auto"
 PAUSE = "pause"
 LAUGH = "laugh"
 SURPRISE = "surprise"
+SMILE = "smile"
+CONCERN = "concern"
+THINK = "think"
+LISTEN = "listen"
 
 VISEME_CUES = ("a", "e", "i", "o", "u")
+
+EXPRESSION_CUES = (SURPRISE, LAUGH, SMILE, CONCERN, THINK, LISTEN)
 
 # Values shown in the studio combo; `auto` omits `cue` in saved YAML.
 ANIMATION_CHOICES: tuple[str, ...] = (
     AUTO,
     PAUSE,
     *VISEME_CUES,
-    LAUGH,
-    SURPRISE,
+    *EXPRESSION_CUES,
 )
+
+VALID_CUES = frozenset({PAUSE, *VISEME_CUES, *EXPRESSION_CUES})
+
+
+def validate_cue(cue: str) -> None:
+    """Reject unknown cue ids at script load (fail closed)."""
+    key = cue.strip().lower()
+    if key not in VALID_CUES:
+        raise ValueError(
+            f"Unknown cue '{cue}'; allowed: {', '.join(sorted(VALID_CUES))}"
+        )
 
 
 def suggest_cue(text: str) -> str:
     """Suggest an animation type from line text (deterministic, overridable in UI)."""
     raw = text.strip()
     if not raw or raw in ("…", "..."):
-        return PAUSE
+        return LISTEN
     if raw.startswith("(") and raw.endswith(")"):
         return PAUSE
 
     lower = raw.lower()
+    if any(token in lower for token in ("haha", "ha!", "laugh", "enthusiasm", "hilarious")):
+        return LAUGH
+    if "?" in raw or "!" in raw or "wow" in lower or "really?" in lower or "unusual" in lower:
+        return SURPRISE
     if any(
         token in lower
-        for token in ("haha", "ha!", "laugh", "enthusiasm")
+        for token in ("thank", "pleasure", "welcome", "delighted", "great to be")
     ):
-        return LAUGH
-    if "?" in raw or "!" in raw or "wow" in lower or "really?" in lower:
-        return SURPRISE
+        return SMILE
+    if any(token in lower for token in ("unfortunately", "oversell", "risk")) or " but " in f" {lower} ":
+        return CONCERN
+    if any(token in lower for token in ("well", "so", "technically", "database", "vault")):
+        return THINK
     return AUTO
 
 
