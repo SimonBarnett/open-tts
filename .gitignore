@@ -11,6 +11,9 @@ secrets*
 *.mp3
 *.mp4
 *.wav
+characters/*.png
+interviews/output/
+_frame_cache/
 *.aac
 *.webm
 *.lnk
