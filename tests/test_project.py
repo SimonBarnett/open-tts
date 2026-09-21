@@ -11,6 +11,7 @@ from open_tts.project import (
     projects_root,
     script_texts,
 )
+from open_tts.tts import ensure_sentence_audio
 
 
 class TestProjectFolders(unittest.TestCase):
@@ -76,6 +77,22 @@ class TestProjectFolders(unittest.TestCase):
     def test_projects_root_override(self) -> None:
         self._env_projects()
         self.assertEqual(projects_root(), self.projects.resolve())
+
+    def test_skip_tts_reuses_existing_project_sentence_mp3(self) -> None:
+        self._env_projects()
+        path = create_project("reuse-show", host="leo", guest="eve")
+        mp3 = path / "sentences" / "leo_001.mp3"
+        mp3.write_bytes(b"existing-mp3")
+        before = mp3.read_bytes()
+        ensure_sentence_audio("Welcome.", "leo", mp3, skip_tts=True)
+        self.assertEqual(mp3.read_bytes(), before)
+
+    def test_skip_tts_requires_existing_mp3_in_project(self) -> None:
+        self._env_projects()
+        path = create_project("missing-audio", host="leo", guest="eve")
+        mp3 = path / "sentences" / "leo_001.mp3"
+        with self.assertRaises(FileNotFoundError):
+            ensure_sentence_audio("Welcome.", "leo", mp3, skip_tts=True)
 
 
 if __name__ == "__main__":
