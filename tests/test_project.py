@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from open_tts.project import (
     create_project,
@@ -76,6 +77,23 @@ class TestProjectFolders(unittest.TestCase):
     def test_projects_root_override(self) -> None:
         self._env_projects()
         self.assertEqual(projects_root(), self.projects.resolve())
+
+    def test_skip_tts_reuses_sentence_mp3(self) -> None:
+        self._env_projects()
+        root = create_project("skip-reuse", host="leo", guest="eve")
+        mp3 = root / "sentences" / "leo_001.mp3"
+        mp3.write_bytes(b"existing-mp3")
+        from open_tts.tts import ensure_sentence_audio
+
+        with patch("open_tts.tts.generate_speech") as gen:
+            ensure_sentence_audio("Welcome.", "leo", mp3, skip_tts=True)
+            gen.assert_not_called()
+
+        missing = root / "sentences" / "eve_002.mp3"
+        with patch("open_tts.tts.generate_speech") as gen:
+            with self.assertRaises(FileNotFoundError):
+                ensure_sentence_audio("Thanks.", "eve", missing, skip_tts=True)
+            gen.assert_not_called()
 
 
 if __name__ == "__main__":
