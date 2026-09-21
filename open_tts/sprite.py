@@ -25,6 +25,10 @@ VISEME_COL = {
 EXPRESSION_COL = {
     "surprise": 0,
     "laugh": 1,
+    "smile": 2,
+    "concern": 3,
+    "think": 4,
+    "listen": 5,
 }
 
 DEFAULT_CELL_PX = 128
@@ -72,6 +76,18 @@ class CharacterSheet:
     def laugh(self) -> Image.Image:
         return self.cell(EXPRESSION_COL["laugh"], EXPRESSION_ROW)
 
+    def smile(self) -> Image.Image:
+        return self.cell(EXPRESSION_COL["smile"], EXPRESSION_ROW)
+
+    def concern(self) -> Image.Image:
+        return self.cell(EXPRESSION_COL["concern"], EXPRESSION_ROW)
+
+    def think(self) -> Image.Image:
+        return self.cell(EXPRESSION_COL["think"], EXPRESSION_ROW)
+
+    def listen(self) -> Image.Image:
+        return self.cell(EXPRESSION_COL["listen"], EXPRESSION_ROW)
+
     def expression_frames(self, expression: str) -> list[Image.Image]:
         col = EXPRESSION_COL.get(expression)
         if col is None:
@@ -112,8 +128,16 @@ def ensure_placeholder_sheet(path: Path, label: str, cell_px: int = DEFAULT_CELL
     }
     for name, col in VISEME_COL.items():
         _fill_cell(img, col, VISEME_ROW, cell_px, colors[name])
-    _fill_cell(img, EXPRESSION_COL["surprise"], EXPRESSION_ROW, cell_px, (255, 200, 80))
-    _fill_cell(img, EXPRESSION_COL["laugh"], EXPRESSION_ROW, cell_px, (255, 120, 180))
+    expression_colors = {
+        "surprise": (255, 200, 80),
+        "laugh": (255, 120, 180),
+        "smile": (120, 220, 140),
+        "concern": (200, 140, 100),
+        "think": (140, 160, 240),
+        "listen": (180, 200, 220),
+    }
+    for name, col in EXPRESSION_COL.items():
+        _fill_cell(img, col, EXPRESSION_ROW, cell_px, expression_colors[name])
     for row in range(ANIMATION_START_ROW, ANIMATION_START_ROW + ANIMATION_FRAME_ROWS):
         for col in range(COLS):
             shade = 60 + (row + col) * 8

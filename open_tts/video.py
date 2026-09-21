@@ -11,7 +11,7 @@ from PIL import Image
 
 from open_tts.audio import media_duration
 from open_tts.characters import load_registry, sheet_for
-from open_tts.sprite import CharacterSheet, viseme_sequence_for_text
+from open_tts.sprite import EXPRESSION_COL, CharacterSheet, viseme_sequence_for_text
 
 
 def run(cmd: list) -> None:
@@ -50,7 +50,7 @@ _PAUSE_LINE = {"id": 0, "text": "", "cue": "pause"}
 
 def _frame_for_line(sheet: CharacterSheet, line: dict, t_in_line: float) -> Path:
     cue = (line.get("cue") or "").lower()
-    if cue in ("laugh", "surprise"):
+    if cue in EXPRESSION_COL:
         frames = sheet.expression_frames(cue)
         idx = int(t_in_line * 8) % len(frames)
         img = frames[idx]
