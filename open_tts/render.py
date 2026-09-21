@@ -17,11 +17,13 @@ from open_tts.characters import load_registry, voice_for
 from open_tts.script import layout_options, load_interview, normalized_lines
 from open_tts.srt import write_srt
 from open_tts.tts import ensure_sentence_audio
+from open_tts.project import (
+    default_output_dir,
+    interview_yaml_in_project,
+    is_project_directory,
+    touch_last_render,
+)
 from open_tts.video import build_video
-
-
-def default_output_dir(yaml_path: Path) -> Path:
-    return yaml_path.parent / "output" / yaml_path.stem
 
 
 def render_interview(
@@ -92,5 +94,8 @@ def render_interview(
             str(layout["guest"]),
             video_out,
         )
+
+    if interview_yaml_in_project(yaml_path) and is_project_directory(out):
+        touch_last_render(out)
 
     return out
