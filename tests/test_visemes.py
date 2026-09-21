@@ -55,9 +55,10 @@ class TestPhoneIntervals(unittest.TestCase):
         self.assertEqual(viseme_at_time(intervals, t_mid), intervals[0]["viseme"])
         self.assertEqual(viseme_at_time(intervals, intervals[-1]["t1"] + 1), intervals[-1]["viseme"])
 
-    def test_consonant_visemes_map_to_pause_on_sheet_pre_11(self):
-        self.assertEqual(sheet_viseme("mbp"), "pause")
-        self.assertEqual(sheet_viseme("fv"), "pause")
+    def test_consonant_visemes_map_to_sheet_cells_not_pause(self):
+        self.assertEqual(sheet_viseme("mbp"), "mbp")
+        self.assertEqual(sheet_viseme("fv"), "fv")
+        self.assertNotEqual(sheet_viseme("mbp"), "pause")
         self.assertEqual(sheet_viseme("i"), "i")
 
 
