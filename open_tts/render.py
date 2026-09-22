@@ -23,6 +23,7 @@ from open_tts.project import (
     is_project_directory,
     touch_last_render,
 )
+from open_tts.overlays import overlay_spec
 from open_tts.video import build_video
 
 
@@ -110,6 +111,7 @@ def render_interview(
             str(layout["host"]),
             str(layout["guest"]),
             video_out,
+            overlays=overlay_spec(data, yaml_path),
         )
 
     if interview_yaml_in_project(yaml_path) and is_project_directory(out):

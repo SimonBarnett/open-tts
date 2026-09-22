@@ -19,10 +19,10 @@ from open_tts.studio.project import StudioProject
 CUE_CHOICES = ("", "auto", "pause", "laugh", "surprise")
 
 
-def run_edit_app(project: StudioProject) -> int:
+def run_edit_app(project: StudioProject, on_back=None) -> int:
     try:
         from PySide6.QtCore import QTimer, Qt, QUrl
-        from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
+        from PySide6.QtMultimedia import QAudioOutput, QMediaDevices, QMediaPlayer
         from PySide6.QtMultimediaWidgets import QVideoWidget
         from PySide6.QtWidgets import (
             QApplication,
@@ -50,7 +50,8 @@ def run_edit_app(project: StudioProject) -> int:
         )
         return 1
 
-    app = QApplication(sys.argv)
+    created_app = QApplication.instance() is None
+    app = QApplication.instance() or QApplication(sys.argv)
 
     class MainWindow(QMainWindow):
         def __init__(self) -> None:
@@ -60,6 +61,8 @@ def run_edit_app(project: StudioProject) -> int:
             self.segments = project.load_segments()
             self.layout_opts = project.layout(self.data)
             self._audio_duration = media_duration(project.audio_path)
+            if self._audio_duration <= 0 and self.segments:
+                self._audio_duration = float(self.segments[-1].get("end") or 0)
             self._current_line_id = 1
             self._dirty = False
             self._baseline: dict[int, tuple[str, str, str]] = {}
@@ -81,12 +84,16 @@ def run_edit_app(project: StudioProject) -> int:
 
             self.player = QMediaPlayer()
             self.audio_out = QAudioOutput()
+            default_out = QMediaDevices.defaultAudioOutput()
+            if not default_out.isNull():
+                self.audio_out.setDevice(default_out)
+            self.audio_out.setVolume(1.0)
             self.player.setAudioOutput(self.audio_out)
             self.player.setVideoOutput(self.video_widget)
-            if project.video_path.is_file():
-                self.player.setSource(QUrl.fromLocalFile(str(project.video_path)))
-            else:
-                self.player.setSource(QUrl.fromLocalFile(str(project.audio_path)))
+            media = project.media_path()
+            self.player.setSource(QUrl.fromLocalFile(str(media.resolve())))
+            self.player.errorOccurred.connect(self._on_player_error)
+            self.player.mediaStatusChanged.connect(self._on_media_status)
 
             transport = QHBoxLayout()
             self.btn_play = QPushButton("Play")
@@ -140,11 +147,13 @@ def run_edit_app(project: StudioProject) -> int:
             right_l.addWidget(insp)
 
             actions = QHBoxLayout()
+            self.btn_back = QPushButton("Back to editor")
             self.btn_save = QPushButton("Save YAML")
             self.btn_reload = QPushButton("Reload YAML")
             self.btn_render_line = QPushButton("Render line")
             self.btn_render_cues = QPushButton("Render cues / layout")
             self.btn_render_full = QPushButton("Render full")
+            actions.addWidget(self.btn_back)
             actions.addWidget(self.btn_save)
             actions.addWidget(self.btn_reload)
             actions.addWidget(self.btn_render_line)
@@ -167,6 +176,7 @@ def run_edit_app(project: StudioProject) -> int:
             self.btn_prev.clicked.connect(self._prev_line)
             self.btn_next.clicked.connect(self._next_line)
             self.btn_loop.clicked.connect(self._toggle_loop)
+            self.btn_back.clicked.connect(self._back_to_editor)
             self.btn_save.clicked.connect(self._save_yaml)
             self.btn_reload.clicked.connect(self._reload_yaml)
             self.btn_render_line.clicked.connect(self._render_line)
@@ -184,7 +194,17 @@ def run_edit_app(project: StudioProject) -> int:
             self._timer.start(200)
 
             self._select_line(1)
-            self._log(f"Opened {project.yaml_path} → {project.output_dir}")
+            self._log(f"Opened {project.yaml_path} -> {project.output_dir}")
+            self._log(f"Media {media.resolve()}")
+            outs = QMediaDevices.audioOutputs()
+            if not outs:
+                self._log(
+                    "No Qt audio output device — Play will be silent. "
+                    "Launch studio from the desktop session, not a headless shell."
+                )
+            else:
+                names = ", ".join(d.description() for d in outs)
+                self._log(f"Audio outputs: {names}")
 
         def _rebuild_baseline(self) -> None:
             lines = self.project.lines(self.data)
@@ -199,6 +219,14 @@ def run_edit_app(project: StudioProject) -> int:
 
         def _log(self, msg: str) -> None:
             self.log.appendPlainText(msg)
+
+        def _on_player_error(self, error, message: str = "") -> None:
+            label = getattr(error, "name", error)
+            self._log(f"Player error {label}: {message or self.player.errorString()}")
+
+        def _on_media_status(self, status) -> None:
+            if status == QMediaPlayer.MediaStatus.InvalidMedia:
+                self._log(f"Invalid media: {self.player.errorString()}")
 
         def _mark_dirty(self) -> None:
             self._dirty = True
@@ -215,6 +243,8 @@ def run_edit_app(project: StudioProject) -> int:
             if not seg:
                 return
             lines = self.project.lines(self.data)
+            if line_id < 1 or line_id > len(lines):
+                return
             ln = lines[line_id - 1]
             self.line_list.blockSignals(True)
             self.line_list.setCurrentRow(line_id - 1)
@@ -318,6 +348,19 @@ def run_edit_app(project: StudioProject) -> int:
             )
             return speaker, text, cue_raw
 
+        def _back_to_editor(self) -> None:
+            self.player.stop()
+            if on_back is not None:
+                on_back()
+            else:
+                from open_tts.studio.main_window import MainWindow as EditorWindow
+
+                editor = EditorWindow(yaml_path=self.project.yaml_path)
+                editor.show()
+                editor.raise_()
+                app._studio_editor = editor
+            self.close()
+
         def _save_yaml(self) -> None:
             prev = self._baseline.get(self._current_line_id)
             speaker, text, cue = self._apply_inspector_to_data()
@@ -365,10 +408,8 @@ def run_edit_app(project: StudioProject) -> int:
                 out = fn()
                 self._log(f"{label} done → {out}")
                 self._reload_yaml(silent=True)
-                if self.project.video_path.is_file():
-                    self.player.setSource(
-                        QUrl.fromLocalFile(str(self.project.video_path))
-                    )
+                media = self.project.media_path()
+                self.player.setSource(QUrl.fromLocalFile(str(media.resolve())))
             except Exception as exc:
                 self._log(f"{label} failed: {exc}")
                 self._log(traceback.format_exc())
@@ -424,5 +465,8 @@ def run_edit_app(project: StudioProject) -> int:
             super().closeEvent(event)
 
     win = MainWindow()
+    app._review_window = win
     win.show()
-    return app.exec()
+    if created_app:
+        return app.exec()
+    return 0

@@ -1,10 +1,12 @@
 import os
 import requests
-import base64
 
+from open_tts.dotenv import load_repo_env
+
+load_repo_env()
 API_KEY = os.environ.get("XAI_API_KEY")
 if not API_KEY:
-    raise SystemExit("Set the XAI_API_KEY environment variable")
+    raise SystemExit("Set the XAI_API_KEY environment variable or repo .env")
 
 response = requests.post(
     "https://api.x.ai/v1/tts",

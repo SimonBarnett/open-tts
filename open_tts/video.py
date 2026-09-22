@@ -11,7 +11,14 @@ from PIL import Image
 
 from open_tts.audio import media_duration
 from open_tts.characters import load_registry, sheet_for
-from open_tts.sprite import EXPRESSION_COL, CharacterSheet
+from open_tts.overlays import (
+    OverlaySpec,
+    SIZE,
+    composite_on_background,
+    scroll_drawtext,
+    title_drawtext,
+)
+from open_tts.sprite import EXPRESSION_COL, CharacterSheet, fit_cover
 from open_tts.visemes import phones_for_line, sheet_viseme, viseme_at_time
 
 
@@ -75,7 +82,11 @@ def _frame_for_line(sheet: CharacterSheet, line: dict, t_in_line: float) -> Path
 
 
 def _compose_split_frame(
-    left_path: Path, right_path: Path, size: tuple[int, int], dest: Path
+    left_path: Path,
+    right_path: Path,
+    size: tuple[int, int],
+    dest: Path,
+    background: Path | None = None,
 ) -> None:
     w, h = size
     half_w = w // 2
@@ -85,10 +96,20 @@ def _compose_split_frame(
     right = Image.open(right_path).convert("RGBA").resize(
         (half_w, h), Image.Resampling.LANCZOS
     )
-    canvas = Image.new("RGBA", (w, h))
-    canvas.paste(left, (0, 0))
-    canvas.paste(right, (half_w, 0))
-    canvas.convert("RGB").save(dest)
+    pair = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    pair.paste(left, (0, 0), left)
+    pair.paste(right, (half_w, 0), right)
+    composite_on_background(pair, dest, size, background)
+
+
+def _compose_full_frame(
+    frame_path: Path,
+    size: tuple[int, int],
+    dest: Path,
+    background: Path | None = None,
+) -> None:
+    face = fit_cover(Image.open(frame_path), size)
+    composite_on_background(face, dest, size, background)
 
 
 def render_block_clip(
@@ -99,6 +120,7 @@ def render_block_clip(
     out_path: Path,
     host_id: str,
     guest_id: str,
+    background: Path | None = None,
 ) -> None:
     w, h = size
     duration = block["duration"]
@@ -137,22 +159,10 @@ def render_block_clip(
             else:
                 left_path = _frame_for_line(sheets[host_id], _PAUSE_LINE, 0.0)
                 right_path = _frame_for_line(sheets[guest_id], _PAUSE_LINE, 0.0)
-            _compose_split_frame(left_path, right_path, size, dest)
+            _compose_split_frame(left_path, right_path, size, dest, background)
         else:
             frame_path = _frame_for_line(sheet, line, t_line)
-            subprocess.run(
-                [
-                    "ffmpeg",
-                    "-y",
-                    "-i",
-                    str(frame_path),
-                    "-vf",
-                    f"scale={w}:{h}:flags=lanczos",
-                    str(dest),
-                ],
-                check=True,
-                capture_output=True,
-            )
+            _compose_full_frame(frame_path, size, dest, background)
 
     run(
         [
@@ -177,6 +187,137 @@ def render_block_clip(
         ]
     )
     shutil.rmtree(frame_dir, ignore_errors=True)
+
+
+def _still_clip(
+    dest: Path,
+    duration: float,
+    size: tuple[int, int],
+    vf: str,
+    image: Path | None = None,
+) -> None:
+    w, h = size
+    if image is not None and image.is_file():
+        run(
+            [
+                "ffmpeg",
+                "-y",
+                "-loop",
+                "1",
+                "-i",
+                str(image.resolve()),
+                "-t",
+                f"{duration:.3f}",
+                "-vf",
+                f"scale={w}:{h}:flags=lanczos,format=yuv420p,{vf}",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "fast",
+                "-pix_fmt",
+                "yuv420p",
+                "-an",
+                str(dest),
+            ]
+        )
+        return
+    run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            f"color=c=0x111118:s={w}x{h}:d={duration:.3f}",
+            "-vf",
+            vf,
+            "-c:v",
+            "libx264",
+            "-preset",
+            "fast",
+            "-pix_fmt",
+            "yuv420p",
+            "-an",
+            str(dest),
+        ]
+    )
+
+
+def _with_silence(clip: Path, dest: Path, duration: float) -> None:
+    run(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(clip.resolve()),
+            "-f",
+            "lavfi",
+            "-i",
+            f"anullsrc=r=24000:cl=mono:d={duration:.3f}",
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "-shortest",
+            str(dest),
+        ]
+    )
+
+
+def _wrap_title_scroll(
+    body: Path, temp: Path, overlays: OverlaySpec | None
+) -> Path:
+    if overlays is None or not (overlays.has_title or overlays.has_scroll):
+        return body
+    parts: list[Path] = []
+    if overlays.has_title:
+        raw = temp / "title.mp4"
+        _still_clip(
+            raw,
+            overlays.title_duration,
+            SIZE,
+            title_drawtext(overlays.title_text or "Interview"),
+            overlays.title_image,
+        )
+        titled = temp / "title_av.mp4"
+        _with_silence(raw, titled, overlays.title_duration)
+        parts.append(titled)
+    parts.append(body)
+    if overlays.has_scroll:
+        raw = temp / "scroll.mp4"
+        textfile = temp / "scroll.txt"
+        textfile.write_text(overlays.scroll_text.strip() + "\n", encoding="utf-8")
+        _still_clip(
+            raw,
+            overlays.scroll_duration,
+            SIZE,
+            scroll_drawtext(textfile, SIZE[1], overlays.scroll_duration),
+        )
+        scrolled = temp / "scroll_av.mp4"
+        _with_silence(raw, scrolled, overlays.scroll_duration)
+        parts.append(scrolled)
+    listing = temp / "wrap_list.txt"
+    listing.write_text(
+        "".join(f"file '{p.resolve().as_posix()}'\n" for p in parts),
+        encoding="utf-8",
+    )
+    wrapped = temp / "wrapped.mp4"
+    run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(listing),
+            "-c",
+            "copy",
+            str(wrapped),
+        ]
+    )
+    return wrapped
 
 
 def mux_final(
@@ -232,6 +373,7 @@ def build_video(
     host_id: str,
     guest_id: str,
     video_out: Path,
+    overlays: OverlaySpec | None = None,
 ) -> None:
     registry = load_registry()
     speakers = {s["speaker"] for s in segments}
@@ -256,6 +398,7 @@ def build_video(
             out_path=clip,
             host_id=host_id,
             guest_id=guest_id,
+            background=overlays.background if overlays else None,
         )
         clips.append(clip)
 
@@ -282,6 +425,9 @@ def build_video(
     )
 
     video_out.parent.mkdir(parents=True, exist_ok=True)
-    mux_final(visual, full_audio, srt_path, video_out, audio_duration)
+    body = temp / "body.mp4"
+    mux_final(visual, full_audio, srt_path, body, audio_duration)
+    wrapped = _wrap_title_scroll(body, temp, overlays)
+    shutil.copy2(wrapped, video_out)
     shutil.rmtree(temp, ignore_errors=True)
     shutil.rmtree(Path("_frame_cache"), ignore_errors=True)

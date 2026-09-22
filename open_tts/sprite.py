@@ -45,6 +45,23 @@ EXPRESSION_COL = {
 SHEET_ROWS = ANIMATION_START_ROW + len(EXPRESSION_COL)
 
 DEFAULT_CELL_PX = 128
+# Vowels, consonants, expressions — the viseme-set preview (not animation strips).
+PREVIEW_ROWS = 3
+
+
+def fit_cover(img: Image.Image, size: tuple[int, int]) -> Image.Image:
+    """Scale so ``img`` covers ``size`` and center-crop. No letterbox."""
+    tw, th = size
+    src = img.convert("RGBA")
+    if tw < 1 or th < 1 or src.width < 1 or src.height < 1:
+        return Image.new("RGBA", (max(1, tw), max(1, th)), (0, 0, 0, 0))
+    scale = max(tw / src.width, th / src.height)
+    nw = max(1, int(round(src.width * scale)))
+    nh = max(1, int(round(src.height * scale)))
+    resized = src.resize((nw, nh), Image.Resampling.LANCZOS)
+    left = max(0, (nw - tw) // 2)
+    top = max(0, (nh - th) // 2)
+    return resized.crop((left, top, left + tw, top + th))
 
 
 @dataclass(frozen=True)

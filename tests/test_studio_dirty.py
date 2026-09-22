@@ -159,6 +159,21 @@ class TestResolveProject(unittest.TestCase):
         self.assertEqual(proj.yaml_path.name, "partner-smart-catalogue.yaml")
         self.assertEqual(proj.output_dir, out.resolve())
 
+    def test_media_path_prefers_mp4(self) -> None:
+        from open_tts.studio.project import StudioProject
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            yaml_path = root / "show.yaml"
+            out = root / "output"
+            out.mkdir()
+            yaml_path.write_text("title: T\n", encoding="utf-8")
+            (out / "full_interview.wav").write_bytes(b"RIFF")
+            proj = StudioProject(yaml_path=yaml_path, output_dir=out)
+            self.assertEqual(proj.media_path(), proj.audio_path)
+            (out / "interview.mp4").write_bytes(b"ftyp")
+            self.assertEqual(proj.media_path(), proj.video_path)
+
 
 if __name__ == "__main__":
     unittest.main()

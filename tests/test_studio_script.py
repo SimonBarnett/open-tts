@@ -39,7 +39,13 @@ class TestScriptSave(unittest.TestCase):
 class TestScriptEditorCues(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        cls._prefs_dir = tempfile.TemporaryDirectory()
+        os.environ["OPEN_TTS_PREFS_PATH"] = str(Path(cls._prefs_dir.name) / "prefs.json")
         cls._app = QApplication.instance() or QApplication([])
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._prefs_dir.cleanup()
 
     def test_partner_enthusiasm_suggests_laugh_and_pause_override_saves(self) -> None:
         line = "There's always a bit of sales enthusiasm!"

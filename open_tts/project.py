@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from open_tts.prefs import last_cast
 from open_tts.script import load_interview, normalized_lines
 
 INTERVIEW_YAML = "interview.yaml"
@@ -122,6 +123,11 @@ def touch_last_render(project_path: Path) -> None:
     write_project_json(project_path, meta)
 
 
+def slug_from_title(title: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+    return slug or "interview"
+
+
 def default_interview_yaml(title: str, host: str, guest: str) -> str:
     return (
         f"title: {title}\n"
@@ -129,36 +135,66 @@ def default_interview_yaml(title: str, host: str, guest: str) -> str:
         f"  host: {host}\n"
         f"  guest: {guest}\n"
         "layout:\n"
-        "  dual_start_turns: 4\n"
-        "  dual_end_turns: 5\n"
+        f"  left: {host}\n"
+        f"  right: {guest}\n"
+        "  dual_start_turns: 1\n"
+        "  dual_end_turns: 1\n"
         "script:\n"
         f'  - {{ speaker: {host}, text: "Welcome." }}\n'
         f'  - {{ speaker: {guest}, text: "Thanks for having me." }}\n'
     )
 
 
+def ensure_project_dirs(root: Path) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    for name in ("sentences", "characters", "assets", WORK_DIR):
+        (root / name).mkdir(exist_ok=True)
+
+
+def ensure_project_in_folder(
+    folder: Path,
+    *,
+    host: str | None = None,
+    guest: str | None = None,
+    title: str | None = None,
+) -> Path:
+    """Open an existing interview folder, or seed a full project tree in it."""
+    folder = Path(folder).expanduser().resolve()
+    folder.mkdir(parents=True, exist_ok=True)
+    ensure_project_dirs(folder)
+    yaml_path = folder / INTERVIEW_YAML
+    if not yaml_path.is_file():
+        saved_host, saved_guest = last_cast()
+        host = host or saved_host
+        guest = guest or saved_guest
+        show_title = title or folder.name.replace("-", " ").title()
+        yaml_path.write_text(
+            default_interview_yaml(show_title, host, guest),
+            encoding="utf-8",
+        )
+    slug = slug_from_title(folder.name)
+    if not _SLUG_RE.match(slug):
+        slug = "interview"
+    if not (folder / PROJECT_JSON).is_file():
+        write_project_json(folder, new_project_metadata(slug))
+    return folder
+
+
 def create_project(
     slug: str,
     *,
-    host: str = "leo",
-    guest: str = "eve",
+    host: str | None = None,
+    guest: str | None = None,
     title: str | None = None,
 ) -> Path:
+    saved_host, saved_guest = last_cast()
+    host = host or saved_host
+    guest = guest or saved_guest
     validate_slug(slug)
     root = project_dir(slug)
     if root.exists() and any(root.iterdir()):
         raise FileExistsError(f"Project already exists: {root}")
-    root.mkdir(parents=True, exist_ok=True)
-    (root / "sentences").mkdir(exist_ok=True)
-    (root / WORK_DIR).mkdir(exist_ok=True)
-    show_title = title or slug.replace("-", " ").title()
-    yaml_path = root / INTERVIEW_YAML
-    yaml_path.write_text(
-        default_interview_yaml(show_title, host, guest),
-        encoding="utf-8",
-    )
-    write_project_json(root, new_project_metadata(slug))
-    return root
+    return ensure_project_in_folder(root, host=host, guest=guest, title=title)
 
 
 def list_projects() -> list[dict[str, Any]]:
@@ -207,9 +243,7 @@ def import_interview_yaml(source_yaml: Path, slug: str | None = None) -> Path:
     root = project_dir(dest_slug)
     if root.exists() and any(root.iterdir()):
         raise FileExistsError(f"Project already exists: {root}")
-    root.mkdir(parents=True, exist_ok=True)
-    (root / "sentences").mkdir(exist_ok=True)
-    (root / WORK_DIR).mkdir(exist_ok=True)
+    ensure_project_dirs(root)
     dest_yaml = root / INTERVIEW_YAML
     shutil.copy2(source_yaml, dest_yaml)
     write_project_json(root, new_project_metadata(dest_slug))

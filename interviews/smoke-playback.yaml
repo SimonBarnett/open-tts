@@ -1,0 +1,20 @@
+title: Smoke playback (short)
+characters:
+  host: leo
+  guest: eve
+layout:
+  dual_start_turns: 1
+  dual_end_turns: 1
+script:
+- speaker: leo
+  text: Hello Eve.
+  cue: smile
+- speaker: eve
+  text: Hello Leo, good to see you.
+  cue: smile
+- speaker: leo
+  text: Can you hear me clearly?
+  cue: surprise
+- speaker: eve
+  text: Yes, loud and clear!
+  cue: laugh

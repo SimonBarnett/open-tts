@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -34,9 +35,15 @@ def sheet_for(character_id: str, registry: dict[str, dict[str, Any]]) -> Charact
     entry = registry.get(character_id)
     if not entry:
         raise KeyError(f"Unknown character id: {character_id}")
-    sheet_path = Path(entry["sheet"])
-    if not sheet_path.is_absolute():
-        sheet_path = repo_root() / sheet_path
+    viseme_set = str(entry.get("viseme_set") or "").strip()
+    if viseme_set:
+        from open_tts.viseme_sets import viseme_set_path
+
+        sheet_path = viseme_set_path(viseme_set)
+    else:
+        sheet_path = Path(entry["sheet"])
+        if not sheet_path.is_absolute():
+            sheet_path = repo_root() / sheet_path
     ensure_placeholder_sheet(sheet_path, character_id)
     return CharacterSheet(sheet_path)
 
@@ -67,6 +74,8 @@ def upsert_character(
     sheet: Path | str,
     prompt: str | None = None,
     hero: Path | str | None = None,
+    viseme_set: str | None = None,
+    display_name: str | None = None,
 ) -> None:
     sheet_str = str(sheet)
     root = repo_root()
@@ -76,6 +85,10 @@ def upsert_character(
     except ValueError:
         pass
     entry: dict[str, Any] = {"voice_id": voice_id, "sheet": sheet_str}
+    if viseme_set:
+        entry["viseme_set"] = viseme_set
+    if display_name:
+        entry["display_name"] = display_name
     if prompt:
         entry["prompt"] = prompt
     if hero:
@@ -87,3 +100,62 @@ def upsert_character(
             pass
         entry["hero"] = hero_str
     registry[character_id] = entry
+
+
+def hero_still_path(character_id: str, root: Path | None = None) -> Path:
+    safe = re.sub(r"[^a-z0-9-]+", "-", character_id.lower()).strip("-") or "draft"
+    return (root or repo_root()) / "characters" / "heroes" / f"{safe}.png"
+
+
+def persist_hero(src: Path, character_id: str, root: Path | None = None) -> Path:
+    """Copy a generated still out of temp into characters/heroes/<id>.png."""
+    dest = hero_still_path(character_id, root)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(Path(src).read_bytes())
+    return dest.resolve()
+
+
+def set_character_hero(
+    registry: dict[str, dict[str, Any]],
+    character_id: str,
+    hero: Path,
+    root: Path | None = None,
+) -> None:
+    """Write hero on an existing entry without wiping voice / viseme / sheet."""
+    base = root or repo_root()
+    entry = registry.setdefault(character_id, {"voice_id": character_id})
+    hero_str = str(hero)
+    try:
+        hero_str = Path(hero).resolve().relative_to(base.resolve()).as_posix()
+    except ValueError:
+        hero_str = str(Path(hero).resolve())
+    entry["hero"] = hero_str
+    if "sheet" not in entry:
+        entry["sheet"] = f"characters/{character_id}.png"
+
+
+def resolve_hero(
+    character_id: str,
+    entry: dict[str, Any] | None = None,
+    extra: Path | str | None = None,
+    root: Path | None = None,
+) -> Path | None:
+    """Last still for this character: heroes/<id>.png, registry hero, then extra."""
+    base = root or repo_root()
+    candidates: list[Path] = [hero_still_path(character_id, base)]
+    if entry and entry.get("hero"):
+        listed = Path(str(entry["hero"]))
+        if not listed.is_absolute():
+            listed = base / listed
+        candidates.append(listed)
+    if extra:
+        candidates.append(Path(extra))
+    seen: set[str] = set()
+    for path in candidates:
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        if path.is_file():
+            return path.resolve()
+    return None

@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.studio-prefs.json
 *.pem
 *.key
 credentials*
@@ -12,6 +13,8 @@ secrets*
 *.mp4
 *.wav
 characters/*.png
+characters/heroes/
+characters/visemes/
 interviews/output/
 projects/**/_work/
 _frame_cache/

@@ -2,6 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from PIL import Image
+
 from open_tts.sprite import (
     CONSONANT_ROW,
     CONSONANT_VISEME_COL,
@@ -10,6 +12,7 @@ from open_tts.sprite import (
     VISEME_COL,
     CharacterSheet,
     ensure_placeholder_sheet,
+    fit_cover,
 )
 
 
@@ -74,6 +77,15 @@ class TestSpriteLayout(unittest.TestCase):
                 6,
                 "laugh strip must span six columns, not a single column",
             )
+
+
+class TestFitCover(unittest.TestCase):
+    def test_landscape_fills_square_no_letterbox(self) -> None:
+        src = Image.new("RGBA", (256, 128), (200, 10, 10, 255))
+        out = fit_cover(src, (128, 128))
+        self.assertEqual(out.size, (128, 128))
+        self.assertEqual(out.getpixel((0, 0))[:3], (200, 10, 10))
+        self.assertEqual(out.getpixel((127, 127))[:3], (200, 10, 10))
 
 
 if __name__ == "__main__":

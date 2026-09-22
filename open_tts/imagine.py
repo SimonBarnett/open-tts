@@ -12,11 +12,27 @@ from pathlib import Path
 import requests
 from PIL import Image, ImageEnhance
 
-from open_tts.sprite import COLS, DEFAULT_CELL_PX, SHEET_ROWS
+from open_tts.dotenv import load_repo_env
+from open_tts.sprite import COLS, DEFAULT_CELL_PX, SHEET_ROWS, fit_cover
 
 
 def _api_key() -> str | None:
-    return os.environ.get("XAI_IMAGE_API_KEY") or os.environ.get("XAI_API_KEY")
+    load_repo_env()
+    key = os.environ.get("XAI_IMAGE_API_KEY") or os.environ.get("XAI_API_KEY")
+    return key or None
+
+
+def _temp_png() -> Path:
+    fd, name = tempfile.mkstemp(suffix=".png")
+    os.close(fd)
+    return Path(name)
+
+
+def _http_error(response: requests.Response) -> RuntimeError:
+    detail = (response.text or "").strip().replace("\n", " ")
+    if len(detail) > 800:
+        detail = detail[:800] + "…"
+    return RuntimeError(f"xAI image HTTP {response.status_code}: {detail or response.reason}")
 
 
 def build_sheet_from_hero(hero: Path, dest: Path, cell_px: int = DEFAULT_CELL_PX) -> Path:
@@ -37,16 +53,10 @@ def build_sheet_from_hero(hero: Path, dest: Path, cell_px: int = DEFAULT_CELL_PX
 def _hero_cell_variant(
     hero: Image.Image, col: int, row: int, cell_px: int
 ) -> Image.Image:
-    """Resize hero into a cell with mild variation by grid position."""
-    base = hero.copy()
-    base.thumbnail((cell_px, cell_px), Image.Resampling.LANCZOS)
-    cell = Image.new("RGBA", (cell_px, cell_px), (0, 0, 0, 0))
-    ox = (cell_px - base.width) // 2
-    oy = (cell_px - base.height) // 2
-    cell.paste(base, (ox, oy), base)
+    """Cover-fit hero into a cell with mild variation by grid position."""
+    cell = fit_cover(hero, (cell_px, cell_px))
     factor = 0.92 + ((col + row * COLS) % 5) * 0.03
-    cell = ImageEnhance.Brightness(cell).enhance(factor)
-    return cell
+    return ImageEnhance.Brightness(cell).enhance(factor)
 
 
 class ImageProvider(ABC):
@@ -67,9 +77,9 @@ class LocalImageProvider(ImageProvider):
             src = Image.open(ref).convert("RGBA")
         else:
             digest = hashlib.sha256(prompt.encode("utf-8")).digest()
-            rgb = tuple(80 + digest[i] for i in range(3))
+            rgb = tuple(80 + (digest[i] % 176) for i in range(3))
             src = Image.new("RGBA", (512, 512), (*rgb, 255))
-        tmp = Path(tempfile.mkstemp(suffix=".png")[1])
+        tmp = _temp_png()
         src.save(tmp)
         return tmp
 
@@ -103,7 +113,8 @@ class XAIImageProvider(ImageProvider):
             json=body,
             timeout=180,
         )
-        response.raise_for_status()
+        if not response.ok:
+            raise _http_error(response)
         payload = response.json()
         data = payload.get("data") or []
         if not data:
@@ -115,7 +126,7 @@ class XAIImageProvider(ImageProvider):
             raw = requests.get(item["url"], timeout=120).content
         else:
             raise RuntimeError("xAI image response missing b64_json and url")
-        tmp = Path(tempfile.mkstemp(suffix=".png")[1])
+        tmp = _temp_png()
         tmp.write_bytes(raw)
         if ref and ref.is_file():
             ref_img = Image.open(ref).convert("RGBA").resize(

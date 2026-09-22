@@ -6,6 +6,7 @@ from PIL import Image
 
 from open_tts.sprite import VISEME_COL, ensure_placeholder_sheet, CharacterSheet
 from open_tts.video import (
+    _compose_full_frame,
     _compose_split_frame,
     _frame_for_line,
     merged_speaker_blocks,
@@ -86,6 +87,17 @@ class TestDualLayout(unittest.TestCase):
             guest_px = guest_sheet.pause().resize((64, 64), Image.Resampling.LANCZOS)
             self.assertEqual(img.getpixel((5, 5)), host_px.convert("RGB").getpixel((5, 5)))
             self.assertEqual(img.getpixel((69, 5)), guest_px.convert("RGB").getpixel((5, 5)))
+
+    def test_full_compose_fills_output_not_centered_postage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cell = Path(tmp) / "cell.png"
+            Image.new("RGB", (32, 32), (0, 220, 0)).save(cell)
+            dest = Path(tmp) / "full.png"
+            _compose_full_frame(cell, (64, 36), dest)
+            img = Image.open(dest)
+            self.assertEqual(img.size, (64, 36))
+            self.assertEqual(img.getpixel((0, 0))[:3], (0, 220, 0))
+            self.assertEqual(img.getpixel((63, 35))[:3], (0, 220, 0))
 
 
 if __name__ == "__main__":

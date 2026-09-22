@@ -81,8 +81,9 @@ def interview_document(
     *,
     title: str,
     characters: dict[str, str],
-    layout: dict[str, int],
+    layout: dict[str, Any],
     script_rows: list[dict[str, str]],
+    overlays: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     script: list[dict[str, str]] = []
     for row in script_rows:
@@ -94,12 +95,15 @@ def interview_document(
         if cue:
             entry["cue"] = cue
         script.append(entry)
-    return {
+    doc: dict[str, Any] = {
         "title": title,
         "characters": characters,
         "layout": layout,
         "script": script,
     }
+    if overlays:
+        doc["overlays"] = overlays
+    return doc
 
 
 def layout_options(data: dict[str, Any]) -> dict[str, str | int]:
@@ -107,9 +111,13 @@ def layout_options(data: dict[str, Any]) -> dict[str, str | int]:
     characters = data.get("characters") or {}
     host_raw = characters.get("host", "leo")
     guest_raw = characters.get("guest", "eve")
+    host = resolve_speaker(str(host_raw), characters)
+    guest = resolve_speaker(str(guest_raw), characters)
     return {
         "dual_start_turns": int(layout.get("dual_start_turns", 4)),
         "dual_end_turns": int(layout.get("dual_end_turns", 5)),
-        "host": resolve_speaker(str(host_raw), characters),
-        "guest": resolve_speaker(str(guest_raw), characters),
+        "host": host,
+        "guest": guest,
+        "left": str(layout.get("left") or host),
+        "right": str(layout.get("right") or guest),
     }

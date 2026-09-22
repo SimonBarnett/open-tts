@@ -8,9 +8,22 @@ import sys
 from pathlib import Path
 
 from open_tts.audio import MAX_SRT_AUDIO_DRIFT_SEC, check_caption_drift
+from open_tts.dotenv import load_repo_env
 from open_tts.project import create_project, import_interview_yaml, list_projects
 from open_tts.render import render_interview
 from open_tts.studio import run_studio
+
+
+def _configure_stdio() -> None:
+    """Windows cp1252 consoles must not crash on a single non-ASCII glyph."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(errors="replace")
+        except (OSError, ValueError):
+            pass
 
 
 def cmd_render(args: argparse.Namespace) -> int:
@@ -25,7 +38,7 @@ def cmd_render(args: argparse.Namespace) -> int:
         video=not args.no_video,
         check_only=False,
     )
-    print(f"Rendered interview → {out.resolve()}")
+    print(f"Rendered interview -> {out.resolve()}")
     return 0
 
 
@@ -88,6 +101,8 @@ def cmd_studio(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _configure_stdio()
+    load_repo_env()
     parser = argparse.ArgumentParser(prog="open_tts")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -116,8 +131,16 @@ def main(argv: list[str] | None = None) -> int:
 
     p_new = project_sub.add_parser("new", help="Create projects/<slug>/")
     p_new.add_argument("slug", help="Project slug (e.g. vault-technical)")
-    p_new.add_argument("--host", default="leo", help="Host character id")
-    p_new.add_argument("--guest", default="eve", help="Guest character id")
+    p_new.add_argument(
+        "--host",
+        default=None,
+        help="Host character id (default: last selected, else leo)",
+    )
+    p_new.add_argument(
+        "--guest",
+        default=None,
+        help="Guest character id (default: last selected, else eve)",
+    )
     p_new.add_argument("--title", help="Interview title")
     p_new.set_defaults(func=cmd_project_new)
 

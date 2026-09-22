@@ -51,7 +51,7 @@ Exit `0` if drift is within budget; `2` if over budget.
 
 ## Interview projects
 
-Headless project folders under `projects/`:
+One folder = one show. Layout: `interview.yaml`, `project.json`, `sentences/`, `characters/`, `assets/`, `_work/`.
 
 ```powershell
 python -m open_tts project new vault-technical --host leo --guest eve --title "Vault technical"
@@ -60,29 +60,31 @@ python -m open_tts project import interviews/partner-smart-catalogue.yaml
 python -m open_tts project import interviews/partner-smart-catalogue.yaml --slug my-slug
 ```
 
-## Studio (#9 wizard vs #13 player)
+`ensure_project_in_folder(path)` opens an existing `interview.yaml` or seeds that full tree in an empty folder. Host/guest default to last selected left/right (else leo/eve).
 
-**Wizard** (compose / project explorer entry, PySide6 — needs display; skip in CI):
+## Studio (#9 wizard vs #13 player)
 
 ```powershell
 python -m open_tts.studio
 ```
 
-**Edit player** (scrub, edit lines, re-render — PySide6; skip in CI):
+**Models** — last selected character reloads on the next launch (`.studio-prefs.json` `last_model`). **Back** returns to the list to pick another or **New model**. **Generate** and **Keep** write `characters/heroes/<id>.png` per model (leo and eve each keep their own face). Selecting a model loads that file; Interview left/right show the same thumbs. Prefs `last_heroes` is a map by character id.
+
+**Toolbar — Open / Create folder** (top of the window, always visible) opens a folder dialog. Empty folder: create the full project tree (two seed lines, last leo/eve). Existing `interview.yaml`: open that show and switch to Interview. **New…** on the Interview row still makes `projects/<slug>/` from a title.
+
+**Review** needs `timings.json`. Missing mixdown must not crash (duration 0; Play silent until wav/mp4). Keep the player on `QApplication._review_window` so it is not GC'd. **Back to editor** returns to the tabs.
+
+Viseme set preview is a 6x3 grid (vowels, consonants, expressions). Bake cover-fits the hero into each cell. Solo video frames cover-fit the output (not a postage stamp in the centre).
+
+**Edit player** (needs timings):
 
 ```powershell
 python -m open_tts.studio --edit interviews/partner-smart-catalogue.yaml
 python -m open_tts.studio --edit interviews/output/partner-smart-catalogue
-```
-
-**CLI `studio` subcommand** on `open_tts` (project explorer / same edit entry):
-
-```powershell
-python -m open_tts studio
 python -m open_tts studio --edit interviews/partner-smart-catalogue.yaml
 ```
 
-Requires prior `render` (timings.json in output dir for `--edit`).
+Prefs (gitignored `.studio-prefs.json`): `last_model`, `last_host`, `last_guest`, `last_project`. Override path with `OPEN_TTS_PREFS_PATH` in tests.
 
 ## Audiotour JSON (separate path)
 

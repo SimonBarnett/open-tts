@@ -6,11 +6,13 @@ import argparse
 import sys
 from pathlib import Path
 
+from open_tts.dotenv import load_repo_env
 from open_tts.studio.app import run_edit_app
 from open_tts.studio.project import resolve_edit_target
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_repo_env()
     parser = argparse.ArgumentParser(prog="open_tts.studio")
     parser.add_argument(
         "--edit",

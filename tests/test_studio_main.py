@@ -39,6 +39,91 @@ class TestStudioMain(unittest.TestCase):
             self.assertEqual(code, 0)
             run.assert_called_once()
 
+    def test_editor_opens_interview_tab_for_yaml(self):
+        import os
+
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        from PySide6.QtWidgets import QApplication
+
+        from open_tts.studio.main_window import MainWindow
+
+        QApplication.instance() or QApplication([])
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["OPEN_TTS_PREFS_PATH"] = str(Path(tmp) / "prefs.json")
+            yaml_path = Path(tmp) / "show.yaml"
+            yaml_path.write_text(
+                "title: FromReview\ncharacters: {host: leo, guest: eve}\n"
+                "script: [{speaker: leo, text: Hi}]\n",
+                encoding="utf-8",
+            )
+            win = MainWindow(yaml_path=yaml_path)
+            self.assertEqual(win._script._path, yaml_path)
+            self.assertEqual(win._script.title_edit.text(), "FromReview")
+            self.assertEqual(win._tabs.currentWidget(), win._script)
+
+    def test_toolbar_open_create_folder_dialog(self):
+        import os
+
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        from PySide6.QtWidgets import QApplication, QToolBar
+
+        from open_tts.studio.main_window import MainWindow
+
+        QApplication.instance() or QApplication([])
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["OPEN_TTS_PREFS_PATH"] = str(Path(tmp) / "prefs.json")
+            os.environ["OPEN_TTS_PROJECTS_DIR"] = str(Path(tmp) / "projects")
+            folder = Path(tmp) / "toolbar-show"
+            folder.mkdir()
+            win = MainWindow()
+            bars = win.findChildren(QToolBar)
+            self.assertTrue(bars)
+            self.assertTrue(
+                any("Open / Create folder" == a.text() for bar in bars for a in bar.actions())
+            )
+            with mock.patch(
+                "open_tts.studio.script_editor.QFileDialog.getExistingDirectory",
+                return_value=str(folder),
+            ):
+                win._open_create_folder()
+            yaml_path = folder / "interview.yaml"
+            self.assertTrue(yaml_path.is_file())
+            self.assertTrue((folder / "sentences").is_dir())
+            self.assertEqual(win._script._path.resolve(), yaml_path.resolve())
+            self.assertEqual(win._tabs.currentWidget(), win._script)
+
+    def test_review_without_mixdown_does_not_crash(self):
+        import os
+
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+        from PySide6.QtWidgets import QApplication
+
+        from open_tts.audio import media_duration
+        from open_tts.studio.app import run_edit_app
+        from open_tts.studio.project import StudioProject
+
+        app = QApplication.instance() or QApplication([])
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            missing = root / "full_interview.mp3"
+            self.assertEqual(media_duration(missing), 0.0)
+            yaml_path = root / "interview.yaml"
+            yaml_path.write_text(
+                "title: T\ncharacters: {host: leo, guest: eve}\n"
+                "script:\n  - {speaker: leo, text: Hi}\n",
+                encoding="utf-8",
+            )
+            (root / "timings.json").write_text(
+                '[{"id":1,"speaker":"leo","text":"Hi","start":0,"end":1.5}]\n',
+                encoding="utf-8",
+            )
+            project = StudioProject(yaml_path=yaml_path, output_dir=root)
+            code = run_edit_app(project)
+            self.assertEqual(code, 0)
+            win = getattr(app, "_review_window", None)
+            self.assertIsNotNone(win)
+            win.close()
+
 
 if __name__ == "__main__":
     unittest.main()

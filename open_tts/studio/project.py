@@ -30,6 +30,12 @@ class StudioProject:
             return wav
         return self.output_dir / "full_interview.mp3"
 
+    def media_path(self) -> Path:
+        """Prefer muxed MP4 (video + audio); else the mixdown."""
+        if self.video_path.is_file():
+            return self.video_path
+        return self.audio_path
+
     def load_data(self) -> dict:
         return load_interview(self.yaml_path)
 

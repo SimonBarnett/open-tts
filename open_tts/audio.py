@@ -20,6 +20,8 @@ MAX_SRT_AUDIO_DRIFT_SEC = 0.030
 
 
 def media_duration(path: Path) -> float:
+    if not path.is_file():
+        return 0.0
     if path.suffix.lower() == ".wav":
         return wav_duration_seconds(path)
     return ffprobe_duration(path)
