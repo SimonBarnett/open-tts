@@ -4,12 +4,14 @@ description: >
   Drive SimonBarnett/open-tts: render YAML interviews, Qt studio wizard and --edit
   player, project folders, audiotour JSON via tts_play.py, characters registry, and
   headless tests. Use for open-tts, python -m open_tts, studio edit, render interview,
-  audiotour.
+  audiotour, viseme, framing, voices.
 ---
 
 # open-tts drive
 
-Load this skill when `--cwd` is **open-tts** (repo root). Human overview: root `README.md`. This file is the machine playbook for CLI layout and guardrails.
+Load this skill when `--cwd` is **open-tts** (repo root). Human overview: root `README.md`. This file is the machine playbook for CLI, studio, cast, voices, and framing.
+
+Local checkout on this box: `D:\ai\open-tts`. Remote: `https://github.com/SimonBarnett/open-tts.git`. Harvest playbooks back here (skill `harvest-open-tts`), not only into `~/.grok/skills`.
 
 ## Dependencies
 
@@ -20,7 +22,7 @@ pip install -r requirements.txt
 - Python 3.10+
 - **`ffmpeg`** and **`ffprobe`** on `PATH` for interview video mux (skip in headless CI with `--no-video`).
 
-API access for live TTS reads **`XAI_API_KEY`** from the environment only (see root README). Do not commit keys or `.env`.
+API access for live TTS and the voice list reads **`XAI_API_KEY`** from the environment or gitignored `.env` only (see root README). Do not commit keys or `.env`. Do not print the key.
 
 ## Render interview (YAML script-first)
 
@@ -39,9 +41,9 @@ python -m open_tts render interviews/partner-smart-catalogue.yaml --no-video
 | `--no-video` | Audio + captions only (no ffmpeg mux) |
 | `-o` / `--output` | Output directory (default beside script) |
 
-## Caption drift check
+Studio Interview **Render** currently shells `python -m open_tts render ... --no-video`. Full picture needs a CLI render without `--no-video` (ffmpeg on PATH).
 
-After render, verify SRT/timings vs merged audio:
+## Caption drift check
 
 ```powershell
 python -m open_tts check path/to/timings.json path/to/full_interview.wav
@@ -62,33 +64,77 @@ python -m open_tts project import interviews/partner-smart-catalogue.yaml --slug
 
 `ensure_project_in_folder(path)` opens an existing `interview.yaml` or seeds that full tree in an empty folder. Host/guest default to last selected left/right (else leo/eve).
 
-## Studio (#9 wizard vs #13 player)
+## Studio
 
 ```powershell
 python -m open_tts.studio
 ```
 
-**Models** — last selected character reloads on the next launch (`.studio-prefs.json` `last_model`). **Back** returns to the list to pick another or **New model**. **Generate** and **Keep** write `characters/heroes/<id>.png` per model (leo and eve each keep their own face). Selecting a model loads that file; Interview left/right show the same thumbs. Prefs `last_heroes` is a map by character id.
+On Windows, launch via Explorer (not a raw redirected pipe) so Qt can see an audio device:
 
-**Toolbar — Open / Create folder** (top of the window, always visible) opens a folder dialog. Empty folder: create the full project tree (two seed lines, last leo/eve). Existing `interview.yaml`: open that show and switch to Interview. **New…** on the Interview row still makes `projects/<slug>/` from a title.
+```powershell
+$bat = "$env:TEMP\open-tts-studio.bat"
+@"
+@echo off
+cd /d D:\ai\open-tts
+python -m open_tts.studio
+"@ | Set-Content -Path $bat -Encoding ascii
+explorer.exe $bat
+```
 
-**Review** needs `timings.json`. Missing mixdown must not crash (duration 0; Play silent until wav/mp4). Keep the player on `QApplication._review_window` so it is not GC'd. **Back to editor** returns to the tabs.
+Kill a previous `python -m open_tts.studio` before relaunch so Simon is not looking at a stale window.
 
-Viseme set preview is a 6x3 grid (vowels, consonants, expressions). Bake cover-fits the hero into each cell. Solo video frames cover-fit the output (not a postage stamp in the centre).
+### Models tab
 
-**Edit player** (needs timings):
+- Last selected character reloads (`.studio-prefs.json` `last_model`). **Back** returns to the list. **New model** starts another.
+- **Voice** is a dropdown. Live list: `GET https://api.x.ai/v1/tts/voices` (and `GET /v1/custom-voices` when the key works). Offline fallback: `BUILTIN_TTS_VOICES` in `open_tts/tts.py` (looked up 2026-09-22, 28 built-ins). Display is `Name (voice_id)`; registry stores the id. Default API voice is `eve`.
+- Built-in ids (do not invent others): altair, ara, atlas, aurora, carina, castor, celeste, cosmo, eve, helios, helix, iris, kepler, leo, liora, lumen, luna, lux, naksh, orion, perseus, rex, rigel, sal, sirius, ursa, zagan, zenith.
+- **Generate** / **Keep** write `characters/heroes/<id>.png` per model. Prefs `last_heroes` is a map by id.
+- If no Keep exists, faces come from the original viseme grids: `characters/visemes/leo.png`, `characters/visemes/eve.png`. `resolve_hero` prefers heroes/, then those defaults. Do not use the grey pause-cell stub or the drawn cartoon portraits when the viseme grids exist.
+- Viseme preview is a 6x3 grid (vowels, consonants, expressions). Leo/Eve without a custom `viseme_set` use those original grids, not `characters/visemes/default.png` (coloured squares).
+- Framing previews: **Full (monologue)**, **Left half**, **Right half**. See Framing below.
+
+### Interview tab
+
+- Header **Left model** / **Right model** are the default stage pair.
+- Toolbar **Open / Create folder** (always visible): empty folder seeds a full project; existing `interview.yaml` opens that show.
+- **New...** still makes `projects/<slug>/` from a title (last leo/eve cast).
+- Table columns: Speaker, Text, **Screen** (auto/full/split), **Left**, **Right**, Animation, Notes.
+- Screen `auto` uses `layout.dual_start_turns` / `dual_end_turns`. `split: true|false` on a line overrides.
+- Left/Right `auto` inherits the previous pair. Set an id to swap a character in from that line on. **Swap sides here** flips the current pair. YAML: `left:`, `right:`, or `swap: true`.
+- Animation includes `attentive` (alias of `listen`). In split, the silent character plays attentive, not a frozen pause.
+
+### Review / edit player
+
+Review needs `timings.json`. Missing mixdown must not crash (`media_duration` 0; Play silent until wav/mp4). Keep the player on `QApplication._review_window` so it is not GC'd. **Back to editor** returns to the tabs.
 
 ```powershell
 python -m open_tts.studio --edit interviews/partner-smart-catalogue.yaml
 python -m open_tts.studio --edit interviews/output/partner-smart-catalogue
-python -m open_tts studio --edit interviews/partner-smart-catalogue.yaml
 ```
 
-Prefs (gitignored `.studio-prefs.json`): `last_model`, `last_host`, `last_guest`, `last_project`. Override path with `OPEN_TTS_PREFS_PATH` in tests.
+Prefs (gitignored `.studio-prefs.json`): `last_model`, `last_host`, `last_guest`, `last_project`, `last_heroes`. Override path with `OPEN_TTS_PREFS_PATH` in tests.
+
+## Framing (original artwork)
+
+Look at the original viseme cells before inventing crops:
+
+- **Leo** (`characters/visemes/leo.png`): tight full-screen **monologue** close-up, studio backdrop.
+- **Eve** (`characters/visemes/eve.png`): wider **half-screen interview** shot (person on one side, desk/set around them).
+
+`open_tts/framing.py` derives both from each cell: `frame_monologue` (solo / full) and `frame_half` (left/right). Video compose uses those, not a naive cover-fit of the same square into both layouts. Legacy talking-head loops on the NAS (`full_*_talking.mp4`, `dual_*_talking_*_idle.mp4`) are the same idea.
+
+Sheets are 6 x 9 cells of 128px (`768x1152`). `characters/*.png` and most of `characters/visemes/` are gitignored; keep `leo.png` / `eve.png` via the gitignore exceptions.
+
+## Characters
+
+- Registry: `characters/registry.yaml` (ids, `voice_id`, sheet, optional `viseme_set`, `hero`).
+- Sprite contract: `characters/README.md` and `open_tts/sprite.py` (6 columns; `attentive` = `listen`).
+- Resolve order for a face: `characters/heroes/<id>.png`, registry `hero`, prefs extra, then default portrait cut from the original viseme grid.
 
 ## Audiotour JSON (separate path)
 
-Club Madeira audiotour JSON is **not** the interview YAML renderer. Use:
+Club Madeira audiotour JSON is **not** the interview YAML renderer:
 
 ```powershell
 python tts_play.py categories-widget-audiotour.json
@@ -96,25 +142,20 @@ python tts_play.py categories-widget-audiotour.json
 
 Root `*-audiotour.json` files are sources; filled copies belong in `processed/` (gitignored).
 
-## Characters
-
-- Registry: `characters/registry.yaml` (character ids, voice ids, sheet paths).
-- Sprite layout: `characters/README.md` — 6×N grid, viseme rows, shared `open_tts/sprite.py` conventions.
-
 ## Headless CI tests
-
-No live TTS, ffmpeg mux, or on-screen Qt required for default unittest suite:
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
+No live TTS, ffmpeg mux, or on-screen Qt required for the default suite. `QT_QPA_PLATFORM=offscreen` is set in studio tests. Voice-list tests must not require the network (documented catalog). Do not hit TTS in tests.
+
 ## Legacy scripts (avoid for new wording)
 
 | Area | Entry |
 |------|--------|
-| `interview1/`, `interview2/`, … | Old per-show Python trees |
-| `build_video.py`, `merge_interview.py` | Mux / concat helpers |
+| `interview1/`, `interview2/`, ... | Old per-show Python trees |
+| `build_video.py`, `merge_interview.py` | Mux / concat helpers; expect NAS `full_*.mp4` / `dual_*.mp4` |
 | `test.py` | One-shot Eve voice smoke test |
 
 Prefer **`interviews/*.yaml`** + `python -m open_tts render` for new interview content.
@@ -122,11 +163,13 @@ Prefer **`interviews/*.yaml`** + `python -m open_tts render` for new interview c
 ## Guardrails
 
 - Never commit **`XAI_API_KEY`**, passwords, or live **`.env`**; never put `password=` or key assignments in git.
-- As a **build worker**: never push **`main`**; never merge your own PR.
-- New interview wording → **`interviews/*.yaml`**, not new forks under legacy **`interviewN/`**.
-- Qt studio and ffmpeg video steps are **optional in headless CI** — use `--no-video`, `--skip-tts`, and unittest only when validating docs/skills changes.
+- As a **build worker**: never push **`main`**; never merge your own PR. (Human / harvest on this box may push when Simon asks.)
+- New interview wording -> **`interviews/*.yaml`**, not new forks under legacy `interviewN/`.
+- Qt studio and ffmpeg video steps are **optional in headless CI** -- use `--no-video`, `--skip-tts`, and unittest only when validating docs/skills changes.
+- Voice ids: look up `GET /v1/tts/voices` or `open_tts/tts.py`; do not invent names.
 
 ## Related docs
 
-- `docs/build-and-test-plan-script-first-interview-renderer.md` — script-first renderer
+- `docs/build-and-test-plan-script-first-interview-renderer.md` -- script-first renderer
+- `docs/skill-harvest-log.md` -- harvested playbooks
 - Feature / build plans under `docs/` for parked work
