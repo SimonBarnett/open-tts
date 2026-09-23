@@ -157,6 +157,16 @@ def build_full_interview(
             "duration": round(dur, 6),
             "cue": line.get("cue"),
         }
+        if "split" in line and line["split"] is not None:
+            seg["split"] = bool(line["split"])
+        if line.get("screen"):
+            seg["screen"] = line["screen"]
+        if "left" in line and line["left"] is not None:
+            seg["left"] = line["left"]
+        if "right" in line and line["right"] is not None:
+            seg["right"] = line["right"]
+        if line.get("swap"):
+            seg["swap"] = True
         if line.get("graph_chars") is not None:
             seg["graph_chars"] = line["graph_chars"]
         if line.get("graph_times") is not None:

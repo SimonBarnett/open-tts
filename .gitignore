@@ -14,10 +14,18 @@ secrets*
 *.wav
 characters/*.png
 characters/heroes/
-characters/visemes/
+characters/original/
+characters/visemes/*
+!characters/visemes/leo.png
+!characters/visemes/eve.png
+!characters/loops/*.mp4
 interviews/output/
 projects/**/_work/
 _frame_cache/
+characters/loops/_frames/
+characters/loops/_work/
+characters/defaults/_orig/
+projects/
 *.aac
 *.webm
 *.lnk
@@ -39,3 +47,4 @@ __pycache__/
 .venv/
 venv/
 env/
+

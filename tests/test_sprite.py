@@ -12,6 +12,7 @@ from open_tts.sprite import (
     VISEME_COL,
     CharacterSheet,
     ensure_placeholder_sheet,
+    fit_contain,
     fit_cover,
 )
 
@@ -86,6 +87,13 @@ class TestFitCover(unittest.TestCase):
         self.assertEqual(out.size, (128, 128))
         self.assertEqual(out.getpixel((0, 0))[:3], (200, 10, 10))
         self.assertEqual(out.getpixel((127, 127))[:3], (200, 10, 10))
+
+    def test_square_contains_on_wide_canvas(self) -> None:
+        src = Image.new("RGBA", (32, 32), (10, 200, 10, 255))
+        out = fit_contain(src, (64, 32))
+        self.assertEqual(out.size, (64, 32))
+        self.assertEqual(out.getpixel((32, 16))[:3], (10, 200, 10))
+        self.assertEqual(out.getpixel((0, 16))[3], 0)
 
 
 if __name__ == "__main__":

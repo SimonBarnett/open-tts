@@ -11,6 +11,7 @@ from PIL import Image
 
 from open_tts.imagine import (
     LocalImageProvider,
+    XAIImageProvider,
     _http_error,
     _temp_png,
     build_sheet_from_hero,
@@ -43,13 +44,37 @@ class TestImagineHelpers(unittest.TestCase):
         self.assertTrue(path.is_file())
         path.unlink(missing_ok=True)
 
-    def test_local_still_rgb_stays_in_range(self) -> None:
+    def test_local_still_is_cartoon_with_transparent_plate(self) -> None:
         still = LocalImageProvider().generate_still(
-            "mid-40s presenter, navy jacket, studio lighting, facing camera",
+            "mid-40s presenter, navy jacket, red hair, facing camera",
             None,
         )
         self.assertTrue(still.is_file())
-        self.assertGreater(still.stat().st_size, 0)
+        img = Image.open(still).convert("RGBA")
+        self.assertEqual(img.getpixel((2, 2))[3], 0)
+        mid = img.getpixel((img.width // 2, img.height // 2))
+        self.assertGreater(mid[3], 200)
+        other = LocalImageProvider().generate_still("green jacket, blonde hair", None)
+        other_img = Image.open(other).convert("RGBA")
+        self.assertNotEqual(img.tobytes(), other_img.tobytes())
+        img.close()
+        other_img.close()
+        still.unlink(missing_ok=True)
+        other.unlink(missing_ok=True)
+
+    def test_cartoon_prompt_demands_flat_cartoon(self) -> None:
+        from open_tts.cartoon import wrap_cartoon_prompt
+
+        text = wrap_cartoon_prompt("navy jacket")
+        self.assertIn("navy jacket", text)
+        self.assertIn("cartoon", text.lower())
+        self.assertIn("FF00FF", text)
+        from open_tts.cartoon import wrap_cartoon_video_prompt
+
+        video = wrap_cartoon_video_prompt("navy jacket")
+        self.assertIn("VIDEO", video)
+        smile = wrap_cartoon_video_prompt("navy jacket", "smile")
+        self.assertIn("Smiling", smile)
 
     def test_http_error_includes_status_and_body(self) -> None:
         response = requests.Response()
@@ -67,6 +92,57 @@ class TestImagineHelpers(unittest.TestCase):
             with patch("open_tts.imagine.load_repo_env", return_value=None):
                 provider = get_image_provider()
         self.assertIsInstance(provider, LocalImageProvider)
+
+    def test_xai_generate_video_posts_to_videos_not_images(self) -> None:
+        from unittest.mock import MagicMock
+
+        provider = XAIImageProvider(api_key="test-key")
+        posted: list[str] = []
+
+        def fake_post(url, **kwargs):
+            posted.append(url)
+            response = MagicMock()
+            response.ok = True
+            response.json.return_value = {"request_id": "rid-1"}
+            return response
+
+        def fake_get(url, **kwargs):
+            response = MagicMock()
+            response.ok = True
+            response.status_code = 200
+            if url.rstrip("/").endswith("/videos/rid-1"):
+                response.json.return_value = {
+                    "status": "done",
+                    "video": {
+                        "url": "https://example.test/clip.mp4",
+                        "duration": 4,
+                        "respect_moderation": True,
+                    },
+                }
+                response.content = b""
+            else:
+                response.json.return_value = {}
+                response.content = b"\x00\x00fake-mp4-bytes-" + (b"X" * 1200)
+            return response
+
+        with patch("open_tts.imagine.requests.post", side_effect=fake_post), patch(
+            "open_tts.imagine.requests.get", side_effect=fake_get
+        ), patch("open_tts.imagine.time.sleep"):
+            path = provider.generate_video("navy jacket, red hair")
+        self.assertTrue(any("/videos/generations" in url for url in posted))
+        self.assertFalse(any("/images/" in url for url in posted))
+        self.assertEqual(path.suffix.lower(), ".mp4")
+        self.assertGreater(path.stat().st_size, 10)
+        path.unlink(missing_ok=True)
+
+    def test_local_generate_video_writes_mp4(self) -> None:
+        try:
+            path = LocalImageProvider().generate_video("navy jacket")
+        except RuntimeError as exc:
+            self.skipTest(str(exc))
+        self.assertEqual(path.suffix.lower(), ".mp4")
+        self.assertTrue(path.is_file())
+        self.assertGreater(path.stat().st_size, 1000)
 
     def test_sheet_cells_fill_not_letterboxed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

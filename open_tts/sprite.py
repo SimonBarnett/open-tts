@@ -64,6 +64,27 @@ def fit_cover(img: Image.Image, size: tuple[int, int]) -> Image.Image:
     return resized.crop((left, top, left + tw, top + th))
 
 
+def fit_contain(
+    img: Image.Image,
+    size: tuple[int, int],
+    fill: tuple[int, int, int, int] = (0, 0, 0, 0),
+) -> Image.Image:
+    """Scale so ``img`` fits inside ``size``. Keep aspect; do not crop or stretch."""
+    tw, th = size
+    src = img.convert("RGBA")
+    canvas = Image.new("RGBA", (max(1, tw), max(1, th)), fill)
+    if tw < 1 or th < 1 or src.width < 1 or src.height < 1:
+        return canvas
+    scale = min(tw / src.width, th / src.height)
+    nw = max(1, int(round(src.width * scale)))
+    nh = max(1, int(round(src.height * scale)))
+    resized = src.resize((nw, nh), Image.Resampling.LANCZOS)
+    left = (tw - nw) // 2
+    top = (th - nh) // 2
+    canvas.paste(resized, (left, top), resized)
+    return canvas
+
+
 @dataclass(frozen=True)
 class Cell:
     col: int
@@ -120,8 +141,13 @@ class CharacterSheet:
     def listen(self) -> Image.Image:
         return self.cell(EXPRESSION_COL["listen"], EXPRESSION_ROW)
 
+    def attentive(self) -> Image.Image:
+        """Split-screen listener pose (same cell as listen)."""
+        return self.listen()
+
     def expression_frames(self, expression: str) -> list[Image.Image]:
-        expr_col = EXPRESSION_COL.get(expression)
+        key = "listen" if expression == "attentive" else expression
+        expr_col = EXPRESSION_COL.get(key)
         if expr_col is None:
             return [self.pause()]
         anim_row = ANIMATION_START_ROW + expr_col

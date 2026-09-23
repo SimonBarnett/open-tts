@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
@@ -19,17 +19,25 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QPushButton,
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
-from open_tts.characters import load_registry, repo_root, resolve_hero
+from open_tts.characters import (
+    ensure_original_sheets,
+    load_registry,
+    repo_root,
+    resolve_hero,
+    resolve_stage_still,
+)
 from open_tts.prefs import hero_pref_for, last_cast, last_project, remember_cast, remember_project
 from open_tts.cues import ANIMATION_CHOICES, AUTO, cue_from_yaml, cue_to_yaml_value, suggest_cue
 from open_tts.overlays import (
@@ -38,7 +46,18 @@ from open_tts.overlays import (
     overlay_spec,
     overlays_to_yaml,
 )
-from open_tts.script import interview_document, load_interview, save_interview
+from open_tts.script import (
+    SCREEN_AUTO,
+    SCREEN_CHOICES,
+    STAGE_AUTO,
+    interview_document,
+    load_interview,
+    save_interview,
+    screen_from_entry,
+    side_override,
+    split_yaml_value,
+)
+from open_tts.record import output_dir_for_script, save_line_recording, write_pcm_wav
 from open_tts.viseme_sets import NONE_MODEL, characters_to_sides, sides_to_characters
 
 
@@ -95,25 +114,37 @@ class ScriptEditor(QWidget):
     COL_NUM = 0
     COL_SPEAKER = 1
     COL_TEXT = 2
-    COL_ANIM = 3
-    COL_NOTES = 4
+    COL_SCREEN = 3
+    COL_LEFT = 4
+    COL_RIGHT = 5
+    COL_ANIM = 6
+    COL_NOTES = 7
 
     def __init__(self) -> None:
         super().__init__()
         self._path: Path | None = None
         self._suppress_suggest = False
+        self._mic = None
+        self._mic_io = None
+        self._mic_chunks: list[bytes] = []
+        self._mic_fmt = None
+        self._mic_timer: QTimer | None = None
+        self._record_row = -1
+        self._player = None
+        self._player_out = None
+        ensure_original_sheets()
 
         root = QVBoxLayout(self)
 
-        meta = QGroupBox("Interview header")
-        meta_form = QFormLayout(meta)
+        cast = QHBoxLayout()
         self.title_edit = QLineEdit()
+        self.title_edit.setPlaceholderText("Title")
         self.left_combo = QComboBox()
         self.right_combo = QComboBox()
         self.left_face = QLabel()
         self.right_face = QLabel()
         for face in (self.left_face, self.right_face):
-            face.setFixedSize(56, 56)
+            face.setFixedSize(72, 72)
             face.setScaledContents(True)
             face.setStyleSheet("background: #222; border: 1px solid #555;")
         self.host_edit = QLineEdit("leo")
@@ -123,18 +154,33 @@ class ScriptEditor(QWidget):
         self.dual_start = QSpinBox()
         self.dual_start.setRange(0, 99)
         self.dual_start.setValue(4)
+        self.dual_start.setPrefix("first ")
         self.dual_end = QSpinBox()
         self.dual_end.setRange(0, 99)
         self.dual_end.setValue(5)
-        meta_form.addRow("Title", self.title_edit)
-        meta_form.addRow("Left model", self._model_pick_row(self.left_combo, self.left_face))
-        meta_form.addRow("Right model", self._model_pick_row(self.right_combo, self.right_face))
-        meta_form.addRow("Dual start turns", self.dual_start)
-        meta_form.addRow("Dual end turns", self.dual_end)
+        self.dual_end.setPrefix("last ")
+        cast.addWidget(QLabel("Title"))
+        cast.addWidget(self.title_edit, stretch=2)
+        cast.addWidget(self.left_face)
+        cast.addWidget(QLabel("Left"))
+        cast.addWidget(self.left_combo, stretch=1)
+        cast.addWidget(self.right_face)
+        cast.addWidget(QLabel("Right"))
+        cast.addWidget(self.right_combo, stretch=1)
         self._fill_side_combos()
         self.left_combo.currentTextChanged.connect(self._sync_hidden_roles)
         self.right_combo.currentTextChanged.connect(self._sync_hidden_roles)
-        root.addWidget(meta)
+        root.addLayout(cast)
+
+        extras = QHBoxLayout()
+        extras.addWidget(QLabel("Auto-split"))
+        extras.addWidget(self.dual_start)
+        extras.addWidget(self.dual_end)
+        extras.addStretch()
+        self.extras_row = QWidget()
+        self.extras_row.setLayout(extras)
+        self.extras_row.setVisible(False)
+        root.addWidget(self.extras_row)
 
         plate = QGroupBox("Background, title, scrolling text")
         plate_l = QVBoxLayout(plate)
@@ -154,58 +200,77 @@ class ScriptEditor(QWidget):
         plate_l.addWidget(self.title_card_edit)
         plate_l.addWidget(self.scroll_edit)
         self.scroll_file_well.path_changed.connect(self._load_dropped_scroll)
+        plate.setVisible(False)
+        self.plate_box = plate
         root.addWidget(plate)
 
         btn_row = QHBoxLayout()
-        new_btn = QPushButton("New…")
-        new_btn.clicked.connect(self._new_project)
-        open_btn = QPushButton("Open folder…")
-        open_btn.clicked.connect(self._open_folder)
-        load_btn = QPushButton("Load YAML…")
-        load_btn.clicked.connect(self._load_dialog)
-        save_btn = QPushButton("Save YAML…")
-        save_btn.clicked.connect(self._save_dialog)
         add_btn = QPushButton("Add line")
         add_btn.clicked.connect(self._add_line)
-        del_btn = QPushButton("Delete line")
+        del_btn = QPushButton("Remove")
         del_btn.clicked.connect(self._delete_line)
-        up_btn = QPushButton("Move up")
-        up_btn.clicked.connect(lambda: self._move_line(-1))
-        down_btn = QPushButton("Move down")
-        down_btn.clicked.connect(lambda: self._move_line(1))
-        render_btn = QPushButton("Render")
+        swap_btn = QPushButton("Swap sides")
+        swap_btn.setToolTip("From this line on, left and right swap places.")
+        swap_btn.clicked.connect(self._swap_sides_on_current)
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(self._save)
+        self.record_btn = QPushButton("Record")
+        self.record_btn.setToolTip("Record the selected line with the microphone.")
+        self.record_btn.clicked.connect(self._toggle_record)
+        play_btn = QPushButton("Play")
+        play_btn.setToolTip("Play the recorded or generated audio for this line.")
+        play_btn.clicked.connect(self._play_line)
+        render_btn = QPushButton("Make audio")
+        render_btn.setToolTip("TTS any missing lines and write full_interview.wav / .mp3.")
         render_btn.clicked.connect(self._render)
         review_btn = QPushButton("Review")
         review_btn.clicked.connect(self._review)
+        more = QToolButton()
+        more.setText("More")
+        more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        menu = QMenu(more)
+        menu.addAction("New project…", self._new_project)
+        menu.addAction("Open folder…", self._open_folder)
+        menu.addAction("Load YAML…", self._load_dialog)
+        menu.addAction("Move line up", lambda: self._move_line(-1))
+        menu.addAction("Move line down", lambda: self._move_line(1))
+        menu.addAction("Auto-split counts", self._toggle_extras)
+        menu.addAction("Background & titles", self._toggle_plate)
+        menu.addAction("Make video", self._render_video)
+        more.setMenu(menu)
         for b in (
-            new_btn,
-            open_btn,
-            load_btn,
-            save_btn,
             add_btn,
             del_btn,
-            up_btn,
-            down_btn,
+            swap_btn,
+            save_btn,
+            self.record_btn,
+            play_btn,
             render_btn,
             review_btn,
+            more,
         ):
             btn_row.addWidget(b)
+        btn_row.addStretch()
         root.addLayout(btn_row)
 
-        self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(["#", "Speaker", "Text", "Animation", "Notes"])
+        self.table = QTableWidget(0, 8)
+        self.table.setHorizontalHeaderLabels(
+            ["#", "Who", "Line", "Screen", "Left", "Right", "Mood", "Notes"]
+        )
         self.table.horizontalHeader().setSectionResizeMode(
             self.COL_TEXT, QHeaderView.ResizeMode.Stretch
         )
         self.table.cellChanged.connect(self._on_cell_changed)
-        root.addWidget(self.table)
+        root.addWidget(self.table, stretch=1)
 
         self.log = QTextEdit()
         self.log.setReadOnly(True)
-        self.log.setMaximumHeight(120)
+        self.log.setMaximumHeight(72)
+        self.log.setPlaceholderText("Render log")
         root.addWidget(self.log)
 
         self._apply_last_cast_defaults()
+        self._refresh_faces()
         last = last_project()
         if last and Path(last).is_file():
             self.load_path(Path(last))
@@ -245,10 +310,11 @@ class ScriptEditor(QWidget):
         if not char_id or char_id == NONE_MODEL:
             label.clear()
             return
-        path = resolve_hero(
-            char_id,
-            load_registry().get(char_id),
-            extra=hero_pref_for(char_id),
+        kind = "left" if label is self.left_face else "right"
+        entry = load_registry().get(char_id)
+        extra = hero_pref_for(char_id)
+        path = resolve_stage_still(char_id, kind, entry, extra=extra) or resolve_hero(
+            char_id, entry, extra=extra
         )
         if path is None:
             label.clear()
@@ -266,6 +332,12 @@ class ScriptEditor(QWidget):
     def refresh_models(self) -> None:
         self._fill_side_combos()
         self._refresh_faces()
+
+    def _toggle_extras(self) -> None:
+        self.extras_row.setVisible(not self.extras_row.isVisible())
+
+    def _toggle_plate(self) -> None:
+        self.plate_box.setVisible(not self.plate_box.isVisible())
 
     def _apply_last_cast_defaults(self) -> None:
         host, guest = last_cast()
@@ -319,7 +391,26 @@ class ScriptEditor(QWidget):
             anim = cue_from_yaml(entry)
             if anim == AUTO:
                 anim = suggest_cue(text)
-            self._append_row(speaker, text, anim, "")
+            left_side = side_override(entry, "left")
+            right_side = side_override(entry, "right")
+            if entry.get("swap") and left_side is None and right_side is None:
+                prev_l, prev_r = self._resolved_sides_at(self.table.rowCount())
+                left_side, right_side = prev_r, prev_l
+
+            def _side_combo_value(side: str | None) -> str:
+                if side is None:
+                    return STAGE_AUTO
+                return NONE_MODEL if side == "" else side
+
+            self._append_row(
+                speaker,
+                text,
+                anim,
+                "",
+                screen_from_entry(entry),
+                _side_combo_value(left_side),
+                _side_combo_value(right_side),
+            )
         self._renumber()
         self._suppress_suggest = False
         spec = overlay_spec(data, path)
@@ -365,21 +456,39 @@ class ScriptEditor(QWidget):
         self.load_path(yaml_path)
         self.log.append(f"Created {root}")
 
-    def _open_folder(self) -> None:
+    def _create_folder(self) -> None:
         from open_tts.project import INTERVIEW_YAML, ensure_project_in_folder, projects_root
 
         start = str(projects_root())
-        folder = QFileDialog.getExistingDirectory(self, "Open folder", start)
+        folder = QFileDialog.getExistingDirectory(self, "Create interview folder", start)
         if not folder:
             return
         try:
             root = ensure_project_in_folder(Path(folder))
         except (OSError, ValueError) as exc:
-            QMessageBox.warning(self, "Open folder", str(exc))
+            QMessageBox.warning(self, "Create", str(exc))
             return
         yaml_path = root / INTERVIEW_YAML
         self.load_path(yaml_path)
-        self.log.append(f"Opened folder {root}")
+        self.log.append(f"Created {root}")
+
+    def _open_folder(self) -> None:
+        from open_tts.project import INTERVIEW_YAML, projects_root
+
+        start = str(projects_root())
+        folder = QFileDialog.getExistingDirectory(self, "Open interview folder", start)
+        if not folder:
+            return
+        yaml_path = Path(folder) / INTERVIEW_YAML
+        if not yaml_path.is_file():
+            QMessageBox.warning(
+                self,
+                "Open",
+                f"No {INTERVIEW_YAML} in that folder. Use Create for a new interview.",
+            )
+            return
+        self.load_path(yaml_path)
+        self.log.append(f"Opened folder {yaml_path.parent}")
 
     def _load_dialog(self) -> None:
         start = str(repo_root() / "interviews")
@@ -388,6 +497,13 @@ class ScriptEditor(QWidget):
         )
         if path:
             self.load_path(Path(path))
+
+    def _save(self) -> None:
+        if self._path is not None:
+            self._write_yaml(self._path)
+            self.log.append(f"Saved {self._path}")
+            return
+        self._save_dialog()
 
     def _save_dialog(self) -> None:
         start = str(self._path or repo_root() / "interviews")
@@ -406,9 +522,18 @@ class ScriptEditor(QWidget):
             text = self._cell_text(r, self.COL_TEXT)
             anim = self._cell_text(r, self.COL_ANIM) or AUTO
             cue = cue_to_yaml_value(anim)
-            row: dict[str, str] = {"speaker": speaker, "text": text}
+            row: dict = {"speaker": speaker, "text": text}
             if cue:
                 row["cue"] = cue
+            split = split_yaml_value(self._cell_text(r, self.COL_SCREEN) or SCREEN_AUTO)
+            if split is not None:
+                row["split"] = split
+            left_side = self._cell_text(r, self.COL_LEFT) or STAGE_AUTO
+            right_side = self._cell_text(r, self.COL_RIGHT) or STAGE_AUTO
+            if left_side not in (STAGE_AUTO, ""):
+                row["left"] = "" if left_side == NONE_MODEL else left_side
+            if right_side not in (STAGE_AUTO, ""):
+                row["right"] = "" if right_side == NONE_MODEL else right_side
             rows.append(row)
         left = self.left_combo.currentText()
         right = self.right_combo.currentText()
@@ -451,13 +576,23 @@ class ScriptEditor(QWidget):
             self.scroll_edit.setPlainText(p.read_text(encoding="utf-8"))
 
     def _append_row(
-        self, speaker: str, text: str, animation: str, notes: str
+        self,
+        speaker: str,
+        text: str,
+        animation: str,
+        notes: str,
+        screen: str = SCREEN_AUTO,
+        left: str = STAGE_AUTO,
+        right: str = STAGE_AUTO,
     ) -> None:
         r = self.table.rowCount()
         self.table.insertRow(r)
         self.table.setItem(r, self.COL_NUM, QTableWidgetItem(str(r + 1)))
         self.table.setCellWidget(r, self.COL_SPEAKER, self._speaker_combo(speaker))
         self.table.setItem(r, self.COL_TEXT, QTableWidgetItem(text))
+        self.table.setCellWidget(r, self.COL_SCREEN, self._screen_combo(screen))
+        self.table.setCellWidget(r, self.COL_LEFT, self._stage_combo(left))
+        self.table.setCellWidget(r, self.COL_RIGHT, self._stage_combo(right))
         self.table.setCellWidget(r, self.COL_ANIM, self._anim_combo(animation))
         self.table.setItem(r, self.COL_NOTES, QTableWidgetItem(notes))
 
@@ -471,6 +606,30 @@ class ScriptEditor(QWidget):
         elif value:
             box.addItem(value)
             box.setCurrentText(value)
+        return box
+
+    def _stage_combo(self, value: str) -> QComboBox:
+        box = QComboBox()
+        box.addItem(STAGE_AUTO)
+        box.addItem(NONE_MODEL)
+        for sp in self._model_ids():
+            box.addItem(sp)
+        idx = box.findText(value or STAGE_AUTO)
+        if idx >= 0:
+            box.setCurrentIndex(idx)
+        elif value:
+            box.addItem(value)
+            box.setCurrentText(value)
+        else:
+            box.setCurrentIndex(0)
+        return box
+
+    def _screen_combo(self, value: str) -> QComboBox:
+        box = QComboBox()
+        for choice in SCREEN_CHOICES:
+            box.addItem(choice)
+        idx = box.findText(value or SCREEN_AUTO)
+        box.setCurrentIndex(idx if idx >= 0 else 0)
         return box
 
     def _anim_combo(self, value: str) -> QComboBox:
@@ -491,6 +650,12 @@ class ScriptEditor(QWidget):
         if col == self.COL_SPEAKER:
             w = self.table.cellWidget(row, col)
             return w.currentText() if isinstance(w, QComboBox) else ""
+        if col == self.COL_SCREEN:
+            w = self.table.cellWidget(row, col)
+            return w.currentText() if isinstance(w, QComboBox) else SCREEN_AUTO
+        if col in (self.COL_LEFT, self.COL_RIGHT):
+            w = self.table.cellWidget(row, col)
+            return w.currentText() if isinstance(w, QComboBox) else STAGE_AUTO
         if col == self.COL_ANIM:
             w = self.table.cellWidget(row, col)
             return w.currentText() if isinstance(w, QComboBox) else AUTO
@@ -511,6 +676,41 @@ class ScriptEditor(QWidget):
             if idx >= 0:
                 anim_w.setCurrentIndex(idx)
             self._suppress_suggest = False
+
+    def _resolved_sides_at(self, row: int) -> tuple[str, str]:
+        left = self.left_combo.currentText()
+        right = self.right_combo.currentText()
+        if left == NONE_MODEL:
+            left = ""
+        if right == NONE_MODEL:
+            right = ""
+        for r in range(max(0, row)):
+            lval = self._cell_text(r, self.COL_LEFT) or STAGE_AUTO
+            rval = self._cell_text(r, self.COL_RIGHT) or STAGE_AUTO
+            if lval not in (STAGE_AUTO, ""):
+                left = "" if lval == NONE_MODEL else lval
+            if rval not in (STAGE_AUTO, ""):
+                right = "" if rval == NONE_MODEL else rval
+        return left, right
+
+    def _set_stage_combo(self, row: int, col: int, value: str) -> None:
+        box = self.table.cellWidget(row, col)
+        if not isinstance(box, QComboBox):
+            return
+        if box.findText(value) < 0 and value:
+            box.addItem(value)
+        box.setCurrentText(value or STAGE_AUTO)
+
+    def _swap_sides_on_current(self) -> None:
+        row = self.table.currentRow()
+        if row < 0:
+            QMessageBox.information(
+                self, "Swap sides", "Select the line where the swap should start."
+            )
+            return
+        left, right = self._resolved_sides_at(row)
+        self._set_stage_combo(row, self.COL_LEFT, right or NONE_MODEL)
+        self._set_stage_combo(row, self.COL_RIGHT, left or NONE_MODEL)
 
     def _add_line(self) -> None:
         speakers = self._speaker_choices()
@@ -534,7 +734,13 @@ class ScriptEditor(QWidget):
         cols = self.table.columnCount()
         row_data = []
         for c in range(cols):
-            if c in (self.COL_SPEAKER, self.COL_ANIM):
+            if c in (
+                self.COL_SPEAKER,
+                self.COL_SCREEN,
+                self.COL_LEFT,
+                self.COL_RIGHT,
+                self.COL_ANIM,
+            ):
                 w = self.table.cellWidget(row, c)
                 row_data.append(w)
                 self.table.removeCellWidget(row, c)
@@ -543,7 +749,13 @@ class ScriptEditor(QWidget):
         self.table.removeRow(row)
         self.table.insertRow(new_row)
         for c, data in enumerate(row_data):
-            if c in (self.COL_SPEAKER, self.COL_ANIM):
+            if c in (
+                self.COL_SPEAKER,
+                self.COL_SCREEN,
+                self.COL_LEFT,
+                self.COL_RIGHT,
+                self.COL_ANIM,
+            ):
                 self.table.setCellWidget(new_row, c, data)
             elif data is not None:
                 self.table.setItem(new_row, c, data)
@@ -560,19 +772,186 @@ class ScriptEditor(QWidget):
             item.setText(str(r + 1))
             item.setFlags(Qt.ItemFlag.ItemIsEnabled)
 
-    def _render(self) -> None:
-        if not self._path:
-            path, _ = QFileDialog.getSaveFileName(
-                self,
-                "Save before render",
-                str(repo_root() / "interviews" / "draft.yaml"),
-                "YAML (*.yaml *.yml)",
-            )
-            if not path:
-                return
-            self._path = Path(path)
+    def _ensure_script_path(self) -> Path | None:
+        if self._path:
+            self._write_yaml(self._path)
+            return self._path
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save interview",
+            str(repo_root() / "interviews" / "draft.yaml"),
+            "YAML (*.yaml *.yml)",
+        )
+        if not path:
+            return None
+        self._path = Path(path)
         self._write_yaml(self._path)
-        cmd = [sys.executable, "-m", "open_tts", "render", str(self._path), "--no-video"]
+        return self._path
+
+    def _output_dir(self) -> Path | None:
+        yaml_path = self._ensure_script_path()
+        if yaml_path is None:
+            return None
+        return output_dir_for_script(yaml_path)
+
+    def _current_speaker(self) -> str:
+        row = self.table.currentRow()
+        if row < 0:
+            return ""
+        return self._cell_text(row, self.COL_SPEAKER).strip()
+
+    def _toggle_record(self) -> None:
+        if self._mic is not None:
+            self._stop_record()
+            return
+        self._start_record()
+
+    def _start_record(self) -> None:
+        if self.table.currentRow() < 0:
+            if self.table.rowCount() == 0:
+                self._add_line()
+            self.table.setCurrentCell(0, self.COL_TEXT)
+        row = self.table.currentRow()
+        speaker = self._current_speaker()
+        if not speaker:
+            QMessageBox.information(self, "Record", "Pick a line and a speaker first.")
+            return
+        if self._output_dir() is None:
+            return
+        try:
+            from PySide6.QtMultimedia import QAudioFormat, QAudioSource, QMediaDevices
+        except ImportError as exc:
+            QMessageBox.warning(self, "Record", f"Qt multimedia is missing: {exc}")
+            return
+        device = QMediaDevices.defaultAudioInput()
+        if device.isNull():
+            QMessageBox.warning(self, "Record", "No microphone found.")
+            return
+        fmt = QAudioFormat()
+        fmt.setSampleRate(24000)
+        fmt.setChannelCount(1)
+        fmt.setSampleFormat(QAudioFormat.SampleFormat.Int16)
+        if not device.isFormatSupported(fmt):
+            fmt = device.preferredFormat()
+        source = QAudioSource(device, fmt)
+        io = source.start()
+        if io is None:
+            QMessageBox.warning(self, "Record", "Could not open the microphone.")
+            return
+        self._mic = source
+        self._mic_io = io
+        self._mic_fmt = fmt
+        self._mic_chunks = []
+        self._record_row = row
+        self._mic_timer = QTimer(self)
+        self._mic_timer.timeout.connect(self._pump_mic)
+        self._mic_timer.start(40)
+        self.record_btn.setText("Stop")
+        self.log.append(f"Recording line {row + 1} ({speaker})…")
+
+    def _pump_mic(self) -> None:
+        if self._mic_io is None:
+            return
+        data = self._mic_io.readAll()
+        if data:
+            self._mic_chunks.append(bytes(data))
+
+    def _stop_record(self) -> None:
+        if self._mic_timer is not None:
+            self._mic_timer.stop()
+            self._mic_timer = None
+        self._pump_mic()
+        source = self._mic
+        self._mic = None
+        self._mic_io = None
+        if source is not None:
+            source.stop()
+        self.record_btn.setText("Record")
+        raw = b"".join(self._mic_chunks)
+        self._mic_chunks = []
+        row = self._record_row
+        speaker = (
+            self._cell_text(row, self.COL_SPEAKER).strip() if row >= 0 else ""
+        )
+        out = self._output_dir()
+        if not raw or not speaker or out is None:
+            self.log.append("Recording discarded (empty).")
+            return
+        fmt = self._mic_fmt
+        width = 2
+        rate = 24000
+        channels = 1
+        if fmt is not None:
+            rate = int(fmt.sampleRate() or rate)
+            channels = int(fmt.channelCount() or channels)
+            try:
+                from PySide6.QtMultimedia import QAudioFormat
+
+                kind = fmt.sampleFormat()
+                width = {
+                    QAudioFormat.SampleFormat.UInt8: 1,
+                    QAudioFormat.SampleFormat.Int16: 2,
+                    QAudioFormat.SampleFormat.Int32: 4,
+                }.get(kind, 2)
+            except Exception:
+                width = 2
+        scratch = out / "_work" / "mic_take.wav"
+        write_pcm_wav(
+            scratch,
+            raw,
+            sample_rate=rate,
+            channels=channels,
+            sample_width=width,
+        )
+        try:
+            mp3, wav = save_line_recording(scratch, out, speaker, row + 1)
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.warning(self, "Record", str(exc))
+            return
+        self.log.append(f"Saved {wav.relative_to(out) if wav.is_relative_to(out) else wav}")
+        if mp3.is_file():
+            self.log.append(f"Also {mp3.name} for other tools.")
+
+    def _play_line(self) -> None:
+        row = self.table.currentRow()
+        speaker = self._current_speaker()
+        out = self._output_dir()
+        if row < 0 or not speaker or out is None:
+            QMessageBox.information(self, "Play", "Pick a line that has audio.")
+            return
+        from open_tts.render import sentence_audio_paths
+
+        mp3, wav = sentence_audio_paths(out, speaker, row + 1)
+        path = wav if wav.is_file() else mp3
+        if not path.is_file():
+            QMessageBox.information(
+                self,
+                "Play",
+                "No audio for this line yet. Record it, or Make audio.",
+            )
+            return
+        try:
+            from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
+        except ImportError as exc:
+            QMessageBox.warning(self, "Play", str(exc))
+            return
+        if self._player is None:
+            self._player = QMediaPlayer(self)
+            self._player_out = QAudioOutput(self)
+            self._player.setAudioOutput(self._player_out)
+        self._player.setSource(QUrl.fromLocalFile(str(path.resolve())))
+        self._player.play()
+        self.log.append(f"Playing {path.name}")
+
+    def _render_video(self) -> None:
+        self._render(video=True)
+
+    def _render(self, video: bool = False) -> None:
+        if not self._ensure_script_path():
+            return
+        cmd = [sys.executable, "-m", "open_tts", "render", str(self._path)]
+        if not video:
+            cmd.append("--no-video")
         self.log.append("$ " + " ".join(cmd))
         try:
             env = os.environ.copy()

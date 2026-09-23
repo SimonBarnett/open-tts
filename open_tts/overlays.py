@@ -10,7 +10,8 @@ from PIL import Image
 
 from open_tts.characters import repo_root
 
-SIZE = (1280, 720)
+# Same canvas as M:\open-tts full_* / dual_* talking-head loops.
+SIZE = (736, 400)
 TITLE_DURATION_SEC = 3.0
 SCROLL_PX_PER_SEC = 64.0
 
@@ -117,7 +118,8 @@ def import_drop(src: Path, dest_dir: Path) -> Path:
 
 
 def load_background(path: Path | None, size: tuple[int, int] = SIZE) -> Image.Image:
-    canvas = Image.new("RGBA", size, (18, 20, 26, 255))
+    """Transparent plate unless the user dropped a still background."""
+    canvas = Image.new("RGBA", size, (0, 0, 0, 0))
     if path is None or not path.is_file():
         return canvas
     if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"}:
@@ -144,7 +146,8 @@ def composite_on_background(
         ox, oy = offset
     canvas.paste(fg, (ox, oy), fg)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    canvas.convert("RGB").save(dest)
+    canvas.save(dest)
+    canvas.close()
 
 
 def ffmpeg_escape_text(text: str) -> str:

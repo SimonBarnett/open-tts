@@ -67,13 +67,25 @@ def render_interview(
         mp3 = speech_dir / f"{sp}_{i:03d}.mp3"
         wav = speech_dir / f"{sp}_{i:03d}.wav"
         voice = voice_for(sp, registry)
-        alignment = ensure_sentence_audio(line["text"], voice, mp3, skip_tts=skip_tts)
+        recorded = wav.is_file() and (
+            not mp3.is_file() or wav.stat().st_mtime >= mp3.stat().st_mtime
+        )
+        alignment = None
+        if recorded:
+            try:
+                export_mp3_from_wav(wav, mp3)
+            except Exception:
+                pass
+        else:
+            alignment = ensure_sentence_audio(
+                line["text"], voice, mp3, skip_tts=skip_tts
+            )
+            if not wav.is_file() or wav.stat().st_mtime < mp3.stat().st_mtime:
+                decode_to_wav(mp3, wav)
         if alignment:
             line["graph_chars"] = alignment["graph_chars"]
             line["graph_times"] = alignment["graph_times"]
-        if not wav.is_file() or wav.stat().st_mtime < mp3.stat().st_mtime:
-            decode_to_wav(mp3, wav)
-        line["file"] = mp3.name
+        line["file"] = mp3.name if mp3.is_file() else wav.name
         speech_wavs.append(wav)
 
     work = out / "_work"
@@ -108,8 +120,8 @@ def render_interview(
             srt_path,
             layout["dual_start_turns"],
             layout["dual_end_turns"],
-            str(layout["host"]),
-            str(layout["guest"]),
+            str(layout["left"]),
+            str(layout["right"]),
             video_out,
             overlays=overlay_spec(data, yaml_path),
         )

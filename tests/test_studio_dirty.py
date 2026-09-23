@@ -33,7 +33,7 @@ class TestDirtyBlocks(unittest.TestCase):
         idx_eve = block_index_for_line(
             7, segments, audio_duration=20.0, dual_start=4, dual_end=5
         )
-        self.assertEqual(idx_eve, 1)
+        self.assertEqual(idx_eve, 2)
 
     def test_cue_change_marks_single_block(self):
         segments = _sample_segments()
@@ -46,8 +46,8 @@ class TestDirtyBlocks(unittest.TestCase):
             cue_changed=True,
         )
         blocks = merged_speaker_blocks(segments, 20.0, 4, 5)
-        self.assertEqual(dirty, {1})
-        self.assertEqual(len(blocks), 2)
+        self.assertEqual(dirty, {2})
+        self.assertEqual(len(blocks), 3)
 
     def test_speaker_change_marks_all_blocks(self):
         segments = _sample_segments()
@@ -59,7 +59,7 @@ class TestDirtyBlocks(unittest.TestCase):
             dual_end=5,
             speaker_changed=True,
         )
-        self.assertEqual(dirty, {0, 1})
+        self.assertEqual(dirty, {0, 1, 2})
 
     def test_text_change_marks_containing_block(self):
         segments = _sample_segments()

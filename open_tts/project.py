@@ -211,7 +211,8 @@ def list_projects() -> list[dict[str, Any]]:
         row: dict[str, Any] = {
             "slug": child.name,
             "path": str(child),
-            "has_video": (child / "interview.mp4").is_file(),
+            "has_video": (child / "interview.mov").is_file()
+            or (child / "interview.mp4").is_file(),
             "modified": yaml_path.stat().st_mtime,
         }
         try:

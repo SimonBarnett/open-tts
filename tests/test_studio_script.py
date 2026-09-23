@@ -72,6 +72,27 @@ class TestScriptEditorCues(unittest.TestCase):
             data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
             self.assertEqual(data["script"][0]["cue"], "pause")
 
+            screen_w = editor.table.cellWidget(0, editor.COL_SCREEN)
+            self.assertIsNotNone(screen_w)
+            screen_w.setCurrentText("split")
+            editor._write_yaml(yaml_path)
+            data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+            self.assertTrue(data["script"][0]["split"])
+            screen_w.setCurrentText("full")
+            editor._write_yaml(yaml_path)
+            data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+            self.assertFalse(data["script"][0]["split"])
+
+            left_w = editor.table.cellWidget(0, editor.COL_LEFT)
+            right_w = editor.table.cellWidget(0, editor.COL_RIGHT)
+            self.assertIsNotNone(left_w)
+            left_w.setCurrentText("eve")
+            right_w.setCurrentText("leo")
+            editor._write_yaml(yaml_path)
+            data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+            self.assertEqual(data["script"][0]["left"], "eve")
+            self.assertEqual(data["script"][0]["right"], "leo")
+
             editor._suppress_suggest = True
             editor.table.setRowCount(0)
             editor._append_row("eve", line, AUTO, "")
@@ -80,6 +101,12 @@ class TestScriptEditorCues(unittest.TestCase):
             editor._on_cell_changed(0, editor.COL_TEXT)
             anim_w = editor.table.cellWidget(0, editor.COL_ANIM)
             self.assertEqual(anim_w.currentText(), "laugh")
+
+    def test_record_and_make_audio_buttons_exist(self) -> None:
+        editor = ScriptEditor()
+        self.assertEqual(editor.record_btn.text(), "Record")
+        labels = [w.text() for w in editor.findChildren(type(editor.record_btn))]
+        self.assertIn("Make audio", labels)
 
 
 class TestInvalidateSentenceAudio(unittest.TestCase):

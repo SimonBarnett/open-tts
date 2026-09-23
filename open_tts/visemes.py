@@ -257,6 +257,9 @@ def phones_for_line(line: dict) -> list[dict]:
     if cached is not None:
         return cached
     duration = float(line.get("duration") or 0.0)
+    if duration <= 0:
+        text = str(line.get("text") or "")
+        duration = max(0.5, 0.07 * max(1, len(text.split())))
     return build_phone_intervals(
         line.get("text") or "",
         duration,

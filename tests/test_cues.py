@@ -13,7 +13,7 @@ class TestSuggestCue(unittest.TestCase):
         self.assertEqual(suggest_cue(text), "laugh")
 
     def test_listener_and_empty_text_suggest_listen(self):
-        self.assertEqual(suggest_cue("", is_listener=True), "listen")
+        self.assertEqual(suggest_cue("", is_listener=True), "attentive")
         self.assertEqual(suggest_cue("…"), "listen")
         self.assertEqual(suggest_cue("   "), "listen")
 
@@ -25,6 +25,7 @@ class TestValidateCue(unittest.TestCase):
     def test_accepts_expression_and_pause(self):
         validate_cue("smile")
         validate_cue("pause")
+        validate_cue("attentive")
 
     def test_rejects_unknown_cue(self):
         with self.assertRaises(ValueError) as ctx:

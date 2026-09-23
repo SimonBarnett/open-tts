@@ -8,15 +8,29 @@ from open_tts.sprite import EXPRESSION_COL
 
 AUTO = "auto"
 
-VALID_CUES = frozenset({"pause", *EXPRESSION_COL.keys()})
+# Attentive is the split-screen listener pose; same cells as listen.
+CUE_ALIASES = {"attentive": "listen"}
+
+VALID_CUES = frozenset({"pause", "attentive", *EXPRESSION_COL.keys()})
 
 # Values shown in the studio combo; ``auto`` omits ``cue`` in saved YAML.
-ANIMATION_CHOICES: tuple[str, ...] = (AUTO, "pause", *sorted(EXPRESSION_COL.keys()))
+ANIMATION_CHOICES: tuple[str, ...] = (
+    AUTO,
+    "pause",
+    "attentive",
+    *sorted(EXPRESSION_COL.keys()),
+)
+
+
+def resolve_cue(cue: str) -> str:
+    """Map aliases (attentive → listen) to a sheet expression or pause."""
+    key = cue.lower().strip()
+    return CUE_ALIASES.get(key, key)
 
 
 def validate_cue(cue: str) -> None:
     key = cue.lower().strip()
-    if key not in VALID_CUES:
+    if key not in VALID_CUES and resolve_cue(key) not in VALID_CUES:
         known = ", ".join(sorted(VALID_CUES))
         raise ValueError(f"Unknown cue '{cue}'. Known cues: {known}")
 
@@ -24,7 +38,7 @@ def validate_cue(cue: str) -> None:
 def suggest_cue(text: str, *, is_listener: bool = False) -> str:
     """Return a cue id or ``auto`` when viseme mouth animation should be used."""
     if is_listener:
-        return "listen"
+        return "attentive"
     stripped = text.strip()
     if not stripped or stripped in ("…", "..."):
         return "listen"

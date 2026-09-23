@@ -86,18 +86,19 @@ Kill a previous `python -m open_tts.studio` before relaunch so Simon is not look
 
 ### Models tab
 
-- Last selected character reloads (`.studio-prefs.json` `last_model`). **Back** returns to the list. **New model** starts another.
+- Last selected character reloads (`.studio-prefs.json` `last_model`). **People** returns to the list. **New person** starts another.
 - **Voice** is a dropdown. Live list: `GET https://api.x.ai/v1/tts/voices` (and `GET /v1/custom-voices` when the key works). Offline fallback: `BUILTIN_TTS_VOICES` in `open_tts/tts.py` (looked up 2026-09-22, 28 built-ins). Display is `Name (voice_id)`; registry stores the id. Default API voice is `eve`.
 - Built-in ids (do not invent others): altair, ara, atlas, aurora, carina, castor, celeste, cosmo, eve, helios, helix, iris, kepler, leo, liora, lumen, luna, lux, naksh, orion, perseus, rex, rigel, sal, sirius, ursa, zagan, zenith.
-- **Generate** / **Keep** write `characters/heroes/<id>.png` per model. Prefs `last_heroes` is a map by id.
-- If no Keep exists, faces come from the original viseme grids: `characters/visemes/leo.png`, `characters/visemes/eve.png`. `resolve_hero` prefers heroes/, then those defaults. Do not use the grey pause-cell stub or the drawn cartoon portraits when the viseme grids exist.
-- Viseme preview is a 6x3 grid (vowels, consonants, expressions). Leo/Eve without a custom `viseme_set` use those original grids, not `characters/visemes/default.png` (coloured squares).
-- Framing previews: **Full (monologue)**, **Left half**, **Right half**. See Framing below.
+- Still-first: **New face** / **Again** draws a cartoon still (transparent plate). **Approve face** locks `characters/heroes/<id>.png` (prefs `last_heroes` by id). Do not generate video until approved.
+- If no approved hero exists, faces come from the original grids: `characters/visemes/leo.png`, `characters/visemes/eve.png`. `resolve_hero` prefers heroes/, then those defaults.
+- No mouth-sheet grid, Bake, hero still label, or viseme combo. Each phoneme / emote / full / split is its own **VIDEO** clip under `characters/loops/` (see `open_tts/loops.py` `clip_slots`).
+- Clip list: left-click previews in **Full / Left / Right** only (stage aspect 736:400). Right-click: **Update this clip** (one slot, I2V from approved face), **Play clip**, **Stop**. Do not autoplay on enter.
+- Stage-aspect stills (loop frames) fill Full as-is; Left/Right are the left/right halves of that plate. Portrait stills are composed onto the stage. See Framing below.
 
 ### Interview tab
 
 - Header **Left model** / **Right model** are the default stage pair.
-- Toolbar **Open / Create folder** (always visible): empty folder seeds a full project; existing `interview.yaml` opens that show.
+- Toolbar **Create** / **Open** / **Save** (separate buttons): empty folder seeds a full project; existing `interview.yaml` opens that show.
 - **New...** still makes `projects/<slug>/` from a title (last leo/eve cast).
 - Table columns: Speaker, Text, **Screen** (auto/full/split), **Left**, **Right**, Animation, Notes.
 - Screen `auto` uses `layout.dual_start_turns` / `dual_end_turns`. `split: true|false` on a line overrides.

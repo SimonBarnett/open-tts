@@ -60,8 +60,10 @@ class TestStudioMain(unittest.TestCase):
             self.assertEqual(win._script._path, yaml_path)
             self.assertEqual(win._script.title_edit.text(), "FromReview")
             self.assertEqual(win._tabs.currentWidget(), win._script)
+            self.assertGreaterEqual(win._tabs.count(), 3)
+            self.assertEqual(win._tabs.tabText(2), "Tutorials")
 
-    def test_toolbar_open_create_folder_dialog(self):
+    def test_toolbar_has_separate_create_open_save(self):
         import os
 
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -73,23 +75,35 @@ class TestStudioMain(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             os.environ["OPEN_TTS_PREFS_PATH"] = str(Path(tmp) / "prefs.json")
             os.environ["OPEN_TTS_PROJECTS_DIR"] = str(Path(tmp) / "projects")
-            folder = Path(tmp) / "toolbar-show"
-            folder.mkdir()
-            win = MainWindow()
-            bars = win.findChildren(QToolBar)
-            self.assertTrue(bars)
-            self.assertTrue(
-                any("Open / Create folder" == a.text() for bar in bars for a in bar.actions())
+            created = Path(tmp) / "created-show"
+            created.mkdir()
+            opened = Path(tmp) / "opened-show"
+            opened.mkdir()
+            (opened / "interview.yaml").write_text(
+                "title: Existing\ncharacters: {host: leo, guest: eve}\nscript: []\n",
+                encoding="utf-8",
             )
+            win = MainWindow()
+            labels = [a.text() for bar in win.findChildren(QToolBar) for a in bar.actions()]
+            self.assertEqual(labels[:3], ["Create", "Open", "Save"])
             with mock.patch(
                 "open_tts.studio.script_editor.QFileDialog.getExistingDirectory",
-                return_value=str(folder),
+                return_value=str(created),
             ):
-                win._open_create_folder()
-            yaml_path = folder / "interview.yaml"
-            self.assertTrue(yaml_path.is_file())
-            self.assertTrue((folder / "sentences").is_dir())
-            self.assertEqual(win._script._path.resolve(), yaml_path.resolve())
+                win._create_folder()
+            self.assertTrue((created / "interview.yaml").is_file())
+            self.assertTrue((created / "sentences").is_dir())
+            self.assertEqual(win._script._path.resolve(), (created / "interview.yaml").resolve())
+            with mock.patch(
+                "open_tts.studio.script_editor.QFileDialog.getExistingDirectory",
+                return_value=str(opened),
+            ):
+                win._open_folder()
+            self.assertEqual(win._script._path.resolve(), (opened / "interview.yaml").resolve())
+            self.assertEqual(win._script.title_edit.text(), "Existing")
+            win._script.title_edit.setText("Renamed")
+            win._save()
+            self.assertIn("Renamed", (opened / "interview.yaml").read_text(encoding="utf-8"))
             self.assertEqual(win._tabs.currentWidget(), win._script)
 
     def test_review_without_mixdown_does_not_crash(self):

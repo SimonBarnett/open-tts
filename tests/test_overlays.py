@@ -71,6 +71,16 @@ class TestOverlays(unittest.TestCase):
             self.assertEqual(out.size, (64, 36))
             self.assertEqual(out.getpixel((0, 0))[:3], (255, 0, 0))
 
+    def test_composite_default_is_transparent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fg = Image.new("RGBA", (16, 16), (0, 255, 0, 255))
+            dest = Path(tmp) / "out.png"
+            composite_on_background(fg, dest, (64, 36), None)
+            out = Image.open(dest)
+            self.assertEqual(out.mode, "RGBA")
+            self.assertEqual(out.getpixel((0, 0))[3], 0)
+            self.assertNotEqual(out.getpixel((32, 18))[3], 0)
+
     def test_import_drop_copies_into_assets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "src.png"

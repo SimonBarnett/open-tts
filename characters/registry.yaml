@@ -1,6 +1,14 @@
-leo:
-  voice_id: leo
-  sheet: characters/leo.png
 eve:
-  voice_id: eve
+  clips:
+    full: D:\ai\open-tts\characters\loops\full_eve_talking.mp4
+  display_name: eve
+  hero: characters/heroes/eve.png
+  loop: D:\ai\open-tts\characters\loops\full_eve_talking.mp4
+  prompt: cartooon ai female with a helpdek headset full face visible
   sheet: characters/eve.png
+  viseme_set: eve
+  voice_id: eve
+leo:
+  sheet: characters/leo.png
+  viseme_set: leo
+  voice_id: leo

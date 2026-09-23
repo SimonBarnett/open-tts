@@ -9,6 +9,111 @@ from pathlib import Path
 
 import requests
 
+from open_tts.dotenv import load_repo_env
+
+# Built-in voices from GET https://api.x.ai/v1/tts/voices (retrieved 2026-09-22).
+# Live studio refreshes this list when XAI_API_KEY is set.
+BUILTIN_TTS_VOICES: tuple[tuple[str, str], ...] = (
+    ("altair", "Altair"),
+    ("ara", "Ara"),
+    ("atlas", "Atlas"),
+    ("aurora", "Aurora"),
+    ("carina", "Carina"),
+    ("castor", "Castor"),
+    ("celeste", "Celeste"),
+    ("cosmo", "Cosmo"),
+    ("eve", "Eve"),
+    ("helios", "Helios"),
+    ("helix", "Helix"),
+    ("iris", "Iris"),
+    ("kepler", "Kepler"),
+    ("leo", "Leo"),
+    ("liora", "Liora"),
+    ("lumen", "Lumen"),
+    ("luna", "Luna"),
+    ("lux", "Lux"),
+    ("naksh", "Naksh"),
+    ("orion", "Orion"),
+    ("perseus", "Perseus"),
+    ("rex", "Rex"),
+    ("rigel", "Rigel"),
+    ("sal", "Sal"),
+    ("sirius", "Sirius"),
+    ("ursa", "Ursa"),
+    ("zagan", "Zagan"),
+    ("zenith", "Zenith"),
+)
+
+_VOICES_CACHE: list[dict[str, str]] | None = None
+
+
+def documented_tts_voices() -> list[dict[str, str]]:
+    """Offline copy of the official built-in catalog."""
+    return [
+        {"voice_id": voice_id, "name": name, "language": "multilingual"}
+        for voice_id, name in BUILTIN_TTS_VOICES
+    ]
+
+
+def _normalize_voice(raw: dict) -> dict[str, str] | None:
+    voice_id = str(raw.get("voice_id") or "").strip()
+    if not voice_id:
+        return None
+    name = str(raw.get("name") or voice_id).strip()
+    language = str(raw.get("language") or "").strip()
+    return {"voice_id": voice_id, "name": name, "language": language}
+
+
+def list_tts_voices(*, refresh: bool = False) -> list[dict[str, str]]:
+    """Official voices from GET /v1/tts/voices, else the documented catalog."""
+    global _VOICES_CACHE
+    if _VOICES_CACHE is not None and not refresh:
+        return list(_VOICES_CACHE)
+    load_repo_env()
+    voices = _fetch_remote_voices()
+    if not voices:
+        voices = documented_tts_voices()
+    voices.sort(key=lambda v: (v.get("name") or v["voice_id"]).lower())
+    _VOICES_CACHE = voices
+    return list(voices)
+
+
+def _fetch_remote_voices() -> list[dict[str, str]]:
+    api_key = os.environ.get("XAI_API_KEY")
+    if not api_key:
+        return []
+    headers = {"Authorization": f"Bearer {api_key}"}
+    found: dict[str, dict[str, str]] = {}
+    try:
+        response = requests.get(
+            "https://api.x.ai/v1/tts/voices",
+            headers=headers,
+            timeout=20,
+        )
+        response.raise_for_status()
+        for raw in response.json().get("voices") or []:
+            if isinstance(raw, dict):
+                item = _normalize_voice(raw)
+                if item:
+                    found[item["voice_id"]] = item
+    except (OSError, ValueError, requests.RequestException):
+        return []
+    try:
+        response = requests.get(
+            "https://api.x.ai/v1/custom-voices",
+            headers=headers,
+            timeout=20,
+        )
+        if response.ok:
+            for raw in response.json().get("voices") or []:
+                if isinstance(raw, dict):
+                    item = _normalize_voice(raw)
+                    if item:
+                        found[item["voice_id"]] = item
+    except (OSError, ValueError, requests.RequestException):
+        pass
+    return list(found.values())
+
 
 def timestamps_sidecar(mp3_path: Path) -> Path:
     return mp3_path.with_name(f"{mp3_path.stem}.timestamps.json")
