@@ -248,6 +248,48 @@ class TestCharacterWizardBake(unittest.TestCase):
         wizard._fill_voice_combo("leo")
         self.assertEqual(wizard._selected_voice_id(), "leo")
 
+    def test_test_speech_button_on_voice_selector(self) -> None:
+        from open_tts.studio.character_wizard import _SpeechWorker
+        from open_tts.tts import TEST_SPEECH_TEXT
+
+        wizard = CharacterWizard()
+        self.assertEqual(wizard.test_speech_btn.text(), "Test speech")
+        wizard._fill_voice_combo("eve")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cached = root / "characters" / "_work" / "voice_preview" / "eve.mp3"
+            cached.parent.mkdir(parents=True)
+            cached.write_bytes(b"x" * 300)
+            with patch(
+                "open_tts.studio.character_wizard.repo_root", return_value=root
+            ), patch.object(wizard, "_play_speech") as play, patch(
+                "open_tts.studio.character_wizard.generate_speech"
+            ) as gen:
+                wizard._on_test_speech()
+                play.assert_called_once()
+                gen.assert_not_called()
+            dest = root / "fresh.mp3"
+            worker = _SpeechWorker("eve", TEST_SPEECH_TEXT, dest)
+            with patch(
+                "open_tts.studio.character_wizard.generate_speech",
+                side_effect=lambda text, voice, path: path.write_bytes(b"ok"),
+            ):
+                worker.run()
+            self.assertTrue(dest.is_file())
+            fails: list[str] = []
+            worker2 = _SpeechWorker("eve", TEST_SPEECH_TEXT, dest)
+            worker2.fail.connect(lambda m: fails.append(m))
+            with patch(
+                "open_tts.studio.character_wizard.generate_speech",
+                side_effect=SystemExit("XAI_API_KEY is not set."),
+            ):
+                worker2.run()
+            # Signal may be queued; call fail path used by UI directly too
+            with patch("open_tts.studio.character_wizard.QMessageBox.warning"):
+                wizard._on_speech_fail("XAI_API_KEY is not set.")
+            self.assertEqual(wizard.status_label.text(), "Test speech failed")
+        wizard.hide()
+
     def test_new_person_button_opens_customize(self) -> None:
         wizard = CharacterWizard()
         wizard.show()

@@ -88,6 +88,7 @@ Kill a previous `python -m open_tts.studio` before relaunch so Simon is not look
 
 - Last selected character reloads (`.studio-prefs.json` `last_model`). **People** returns to the list. **New person** starts another.
 - **Voice** is a dropdown. Live list: `GET https://api.x.ai/v1/tts/voices` (and `GET /v1/custom-voices` when the key works). Offline fallback: `BUILTIN_TTS_VOICES` in `open_tts/tts.py` (looked up 2026-09-22, 28 built-ins). Display is `Name (voice_id)`; registry stores the id. Default API voice is `eve`.
+- **Test speech** (beside the Voice dropdown) synthesizes `TEST_SPEECH_TEXT` with the selected voice and plays it. Needs `XAI_API_KEY`. Caches under `characters/_work/voice_preview/<voice_id>.mp3`.
 - Built-in ids (do not invent others): altair, ara, atlas, aurora, carina, castor, celeste, cosmo, eve, helios, helix, iris, kepler, leo, liora, lumen, luna, lux, naksh, orion, perseus, rex, rigel, sal, sirius, ursa, zagan, zenith.
 - Still-first: **New face** / **Again** draws a cartoon still (transparent plate). **Move / size** the model on that still (drag + Size slider), then **Approve face** locks `characters/heroes/<id>.png` plus `.placement.json`. Do not generate video until approved.
 - Dual characters are **two halves of the screen** (Left | Right). There is no separate "split talking" mode — Screen `split` means half + half.

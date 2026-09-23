@@ -55,7 +55,7 @@ from open_tts.loops import (
     resolve_clip,
     resolve_loop,
 )
-from open_tts.tts import list_tts_voices
+from open_tts.tts import TEST_SPEECH_TEXT, generate_speech, list_tts_voices
 from open_tts.framing import (
     STAGE_SIZE,
     Placement,
@@ -128,6 +128,26 @@ class _VideoWorker(QObject):
             self.fail.emit(str(exc))
 
 
+class _SpeechWorker(QObject):
+    done = Signal(object)
+    fail = Signal(str)
+
+    def __init__(self, voice_id: str, text: str, dest: Path) -> None:
+        super().__init__()
+        self._voice_id = voice_id
+        self._text = text
+        self._dest = dest
+
+    def run(self) -> None:
+        try:
+            generate_speech(self._text, self._voice_id, self._dest)
+            self.done.emit(self._dest)
+        except SystemExit as exc:
+            self.fail.emit(str(exc) or "XAI_API_KEY is not set.")
+        except Exception as exc:  # noqa: BLE001
+            self.fail.emit(str(exc))
+
+
 class CharacterWizard(QWidget):
     registry_changed = Signal()
 
@@ -144,6 +164,10 @@ class CharacterWizard(QWidget):
         self._placement: Placement = Placement()
         self._gen_thread: QThread | None = None
         self._gen_worker: _VideoWorker | None = None
+        self._speech_thread: QThread | None = None
+        self._speech_worker: _SpeechWorker | None = None
+        self._speech_player = None
+        self._speech_out = None
         self._player = None
         self._player_out = None
         self.play_clip_btn = None
@@ -214,6 +238,12 @@ class CharacterWizard(QWidget):
         self._fill_voice_combo("eve")
         self.voice_combo.currentIndexChanged.connect(self._on_voice_changed)
         voice_row.addWidget(self.voice_combo, stretch=1)
+        self.test_speech_btn = QPushButton("Test speech")
+        self.test_speech_btn.setToolTip(
+            "Play a short sample with the selected voice (needs XAI_API_KEY)."
+        )
+        self.test_speech_btn.clicked.connect(self._on_test_speech)
+        voice_row.addWidget(self.test_speech_btn)
         self.customize_btn = QToolButton()
         self.customize_btn.setText("Customize…")
         self.customize_btn.setCheckable(True)
@@ -371,6 +401,90 @@ class CharacterWizard(QWidget):
             return
         registry[char_id]["voice_id"] = self._selected_voice_id()
         save_registry(registry)
+
+    def _on_test_speech(self) -> None:
+        if self._speech_thread is not None:
+            return
+        voice_id = self._selected_voice_id()
+        if not voice_id:
+            QMessageBox.information(self, "Test speech", "Pick a voice first.")
+            return
+        dest = (
+            repo_root()
+            / "characters"
+            / "_work"
+            / "voice_preview"
+            / f"{voice_id}.mp3"
+        )
+        if dest.is_file() and dest.stat().st_size > 200:
+            self.status_label.setText(f"Playing cached test speech ({voice_id})…")
+            self._play_speech(dest)
+            return
+        self.test_speech_btn.setEnabled(False)
+        self.test_speech_btn.setText("Speaking…")
+        self.status_label.setText(f"Testing voice {voice_id}…")
+        thread = QThread(self)
+        worker = _SpeechWorker(voice_id, TEST_SPEECH_TEXT, dest)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.done.connect(self._on_speech_ready)
+        worker.fail.connect(self._on_speech_fail)
+        worker.done.connect(thread.quit)
+        worker.fail.connect(thread.quit)
+        thread.finished.connect(worker.deleteLater)
+        thread.finished.connect(self._clear_speech_thread)
+        self._speech_thread = thread
+        self._speech_worker = worker
+        thread.start()
+
+    def _clear_speech_thread(self) -> None:
+        self._speech_thread = None
+        self._speech_worker = None
+        self.test_speech_btn.setEnabled(True)
+        self.test_speech_btn.setText("Test speech")
+
+    def _on_speech_ready(self, path) -> None:
+        mp3 = Path(path)
+        if not mp3.is_file():
+            self.status_label.setText("Test speech failed — no audio file.")
+            return
+        self.status_label.setText(f"Playing test speech ({self._selected_voice_id()})…")
+        self._play_speech(mp3)
+
+    def _on_speech_fail(self, message: str) -> None:
+        self.status_label.setText("Test speech failed")
+        QMessageBox.warning(self, "Test speech", message or "TTS failed.")
+
+    def _ensure_speech_player(self) -> None:
+        if self._speech_player is not None or os.environ.get("QT_QPA_PLATFORM") == "offscreen":
+            return
+        try:
+            from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
+
+            self._speech_player = QMediaPlayer(self)
+            self._speech_out = QAudioOutput(self)
+            self._speech_out.setVolume(1.0)
+            self._speech_player.setAudioOutput(self._speech_out)
+        except Exception:
+            self._speech_player = None
+
+    def _play_speech(self, path: Path) -> None:
+        self._ensure_speech_player()
+        if self._speech_player is None or not path.is_file():
+            if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
+                return
+            QMessageBox.information(
+                self,
+                "Test speech",
+                f"Audio ready at:\n{path}\n(no Qt audio device available to play it)",
+            )
+            return
+        from PySide6.QtCore import QUrl
+
+        if self._speech_out is not None:
+            self._speech_out.setVolume(1.0)
+        self._speech_player.setSource(QUrl.fromLocalFile(str(path.resolve())))
+        self._speech_player.play()
 
     def _show_picker(self) -> None:
         self._refresh_model_list(self.id_edit.text().strip() or last_model())
