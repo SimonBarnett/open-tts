@@ -3,9 +3,19 @@
 Original Leo cells are tight talking-head stills (monologue).
 Original Eve cells are wider interview shots with the person on one side
 (half-screen). Both versions are derived from the same source cell.
+
+Dual screen is always two halves of the plate (left | right). There is no
+separate "split talking" mode — two characters means two halves.
+
+Before generating viseme / clip video, the studio can pan and size the
+model on the initial still via Placement (zoom + pan).
 """
 
 from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -14,6 +24,77 @@ from open_tts.sprite import fit_contain
 STAGE_SIZE = (736, 400)
 STAGE_BG = (8, 10, 20, 255)
 STAGE_GRID = (24, 28, 42, 255)
+
+
+@dataclass
+class Placement:
+    """Pan/zoom of the model inside the initial still before clip gen."""
+
+    zoom: float = 1.0
+    pan_x: float = 0.0
+    pan_y: float = 0.0
+
+    def clamped(self) -> "Placement":
+        return Placement(
+            zoom=max(1.0, min(4.0, float(self.zoom))),
+            pan_x=max(-1.0, min(1.0, float(self.pan_x))),
+            pan_y=max(-1.0, min(1.0, float(self.pan_y))),
+        )
+
+
+def apply_placement(img: Image.Image, placement: Placement | None = None) -> Image.Image:
+    """Crop and zoom the still. zoom=1 keeps the full image; pan shifts the crop."""
+    src = img.convert("RGBA")
+    if placement is None:
+        return src
+    p = placement.clamped()
+    if abs(p.zoom - 1.0) < 1e-6 and abs(p.pan_x) < 1e-6 and abs(p.pan_y) < 1e-6:
+        return src
+    w, h = src.size
+    cw = max(1, int(round(w / p.zoom)))
+    ch = max(1, int(round(h / p.zoom)))
+    max_ox = max(0, (w - cw) / 2)
+    max_oy = max(0, (h - ch) / 2)
+    cx = w / 2 + p.pan_x * max_ox
+    cy = h / 2 + p.pan_y * max_oy
+    x0 = int(round(cx - cw / 2))
+    y0 = int(round(cy - ch / 2))
+    x0 = max(0, min(w - cw, x0))
+    y0 = max(0, min(h - ch, y0))
+    crop = src.crop((x0, y0, x0 + cw, y0 + ch))
+    return crop.resize((w, h), Image.Resampling.LANCZOS)
+
+
+def placement_path(hero: Path) -> Path:
+    """JSON beside the hero still: characters/heroes/<id>.placement.json."""
+    return Path(hero).with_suffix(".placement.json")
+
+
+def save_placement(hero: Path, placement: Placement) -> Path:
+    path = placement_path(hero)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(asdict(placement.clamped()), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def load_placement(hero: Path | None) -> Placement:
+    if hero is None:
+        return Placement()
+    path = placement_path(Path(hero))
+    if not path.is_file():
+        return Placement()
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        return Placement(
+            zoom=float(raw.get("zoom", 1.0)),
+            pan_x=float(raw.get("pan_x", 0.0)),
+            pan_y=float(raw.get("pan_y", 0.0)),
+        ).clamped()
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return Placement()
 
 
 def is_stage_aspect(size: tuple[int, int], tol: float = 0.12) -> bool:

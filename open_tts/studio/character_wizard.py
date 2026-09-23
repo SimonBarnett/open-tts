@@ -56,7 +56,17 @@ from open_tts.loops import (
     resolve_loop,
 )
 from open_tts.tts import list_tts_voices
-from open_tts.framing import STAGE_SIZE, compose_split_pair, frame_monologue, is_stage_aspect
+from open_tts.framing import (
+    STAGE_SIZE,
+    Placement,
+    apply_placement,
+    compose_split_pair,
+    frame_monologue,
+    is_stage_aspect,
+    load_placement,
+    save_placement,
+)
+from open_tts.studio.placement_view import StillPlacementPanel
 from open_tts.viseme_sets import DEFAULT_VISEME_SET, ensure_default_viseme_set, viseme_set_path
 
 
@@ -121,6 +131,7 @@ class CharacterWizard(QWidget):
         self._locked_video: Path | None = None
         self._face_approved: bool = False
         self._pending_slot: str = "full"
+        self._placement: Placement = Placement()
         self._gen_thread: QThread | None = None
         self._gen_worker: _VideoWorker | None = None
         self._player = None
@@ -180,6 +191,10 @@ class CharacterWizard(QWidget):
             frames.addLayout(col)
         frames.addStretch()
         detail.addLayout(frames)
+
+        self.placement_panel = StillPlacementPanel()
+        self.placement_panel.placement_changed.connect(self._on_placement_changed)
+        detail.addWidget(self.placement_panel)
 
         voice_row = QHBoxLayout()
         voice_row.addWidget(QLabel("Voice"))
@@ -380,6 +395,9 @@ class CharacterWizard(QWidget):
         self._face_approved = False
         self._still_path = None
         self._preview_sheet = None
+        self._placement = Placement()
+        self.placement_panel.set_placement(self._placement)
+        self.placement_panel.set_pixmap(None)
         self._sync_video_enabled()
         self.current_model_label.setText("New person")
         self._set_customize(True)
@@ -387,7 +405,7 @@ class CharacterWizard(QWidget):
         self.name_edit.setFocus()
         self._refresh_clip_list("")
         self.status_label.setText(
-            "New face first. Approve that still before any video clip."
+            "New face first. Move/size it, then Approve face before any video clip."
         )
 
     def _on_model_picked(self, char_id: str) -> None:
@@ -414,6 +432,8 @@ class CharacterWizard(QWidget):
                 path = listed
         if path is not None:
             self._locked_hero = path
+            self._placement = load_placement(path)
+            self.placement_panel.set_placement(self._placement)
             display = path
             if "heroes" not in Path(path).parts:
                 staged = resolve_stage_still(
@@ -428,6 +448,9 @@ class CharacterWizard(QWidget):
         self._locked_hero = None
         self._still_path = None
         self._face_approved = False
+        self._placement = Placement()
+        self.placement_panel.set_placement(self._placement)
+        self.placement_panel.set_pixmap(None)
         self._sync_video_enabled()
 
     def _prompt_text(self) -> str:
@@ -462,24 +485,52 @@ class CharacterWizard(QWidget):
     def _show_still(self, path: Path) -> None:
         preview = self._preview_image(path) or path
         self._still_path = preview
+        pix = QPixmap(str(preview)) if preview.is_file() else QPixmap()
+        self.placement_panel.set_pixmap(pix if not pix.isNull() else None)
+        self.placement_panel.set_placement(self._placement)
         self._show_frame_versions()
+
+    def _on_placement_changed(self, placement: Placement) -> None:
+        self._placement = placement.clamped()
+        self._show_frame_versions()
+
+    def _placed_still_image(self):
+        from PIL import Image
+
+        if not (self._still_path and self._still_path.is_file()):
+            return None
+        img = Image.open(self._still_path).convert("RGBA")
+        return apply_placement(img, self._placement)
+
+    def _write_placed_hero(self, dest: Path) -> Path:
+        """Write the pan/zoomed still used as the I2V / clip reference."""
+        from PIL import Image
+
+        src = self._locked_hero or self._still_path
+        if src is None or not Path(src).is_file():
+            raise FileNotFoundError("No still to place")
+        with Image.open(src) as img:
+            placed = apply_placement(img, self._placement)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            placed.save(dest)
+        return dest
 
     def _show_frame_versions(self) -> None:
         from PIL import Image
 
-        img = None
-        if self._still_path and self._still_path.is_file():
-            img = Image.open(self._still_path).convert("RGBA")
+        img = self._placed_still_image()
         if img is None:
             char_id = self.id_edit.text().strip()
-            img = stage_source_image(
+            raw = stage_source_image(
                 char_id,
                 load_registry().get(char_id),
                 extra=hero_pref_for(char_id),
             )
+            img = apply_placement(raw, self._placement) if raw is not None else None
         if img is None:
             return
         preview = (STAGE_SIZE[0] // 2, STAGE_SIZE[1] // 2)
+        # Dual = two halves of the screen. No separate "split talking" mode.
         if is_stage_aspect(img.size):
             full = img.resize(preview, Image.Resampling.LANCZOS)
             left = full.crop((0, 0, preview[0] // 2, preview[1]))
@@ -628,9 +679,13 @@ class CharacterWizard(QWidget):
         self._history.append(path)
         self.history_list.addItem(str(path))
         self._face_approved = False
+        self._placement = Placement()
+        self.placement_panel.set_placement(self._placement)
         self._sync_video_enabled()
         self._show_still(path)
-        self.status_label.setText("Still ready. Approve face before any video.")
+        self.status_label.setText(
+            "Still ready. Drag to move, Size to zoom, then Approve face before any video."
+        )
 
     def _on_generate(self) -> None:
         if self._gen_thread is not None:
@@ -647,9 +702,19 @@ class CharacterWizard(QWidget):
         self._ensure_id()
         slot = self._selected_slot()
         self._pending_slot = slot
+        self._placement = self.placement_panel.placement()
+        if self._locked_hero and self._locked_hero.is_file():
+            save_placement(self._locked_hero, self._placement)
+            placed = repo_root() / "characters" / "heroes" / "_placed" / f"{self._ensure_id()}.png"
+            try:
+                ref = self._write_placed_hero(placed)
+            except Exception as exc:  # noqa: BLE001
+                QMessageBox.warning(self, "Placement", str(exc))
+                return
+        else:
+            ref = self._locked_hero
         self._set_gen_busy(True, "video")
         self.status_label.setText(f"Generating VIDEO clip: {slot}…")
-        ref = self._locked_hero
         thread = QThread(self)
         worker = _VideoWorker(
             self._provider,
@@ -790,6 +855,8 @@ class CharacterWizard(QWidget):
             self.id_edit.setText(char_id)
         dest = persist_hero(src, char_id, repo_root())
         self._locked_hero = dest
+        self._placement = self.placement_panel.placement()
+        save_placement(dest, self._placement)
         self._face_approved = True
         self._sync_video_enabled()
         registry = load_registry()
@@ -797,6 +864,11 @@ class CharacterWizard(QWidget):
         entry = registry[char_id]
         entry["voice_id"] = self._selected_voice_id() or char_id
         entry["prompt"] = self.prompt_edit.toPlainText().strip()
+        entry["placement"] = {
+            "zoom": self._placement.zoom,
+            "pan_x": self._placement.pan_x,
+            "pan_y": self._placement.pan_y,
+        }
         if self.name_edit.text().strip():
             entry["display_name"] = self.name_edit.text().strip()
         save_registry(registry)
@@ -806,11 +878,13 @@ class CharacterWizard(QWidget):
         self._show_still(dest)
         self._refresh_model_list(char_id)
         self.registry_changed.emit()
-        self.status_label.setText("Face approved. Right-click a phoneme clip to update it.")
+        self.status_label.setText(
+            "Face approved with current size/position. Right-click a phoneme clip to update it."
+        )
         QMessageBox.information(
             self,
             "Approved",
-            f"Face locked for {char_id}. Video clips can be generated now.",
+            f"Face locked for {char_id} (including move/size). Video clips can be generated now.",
         )
 
     def _on_history_pick(self, item) -> None:
