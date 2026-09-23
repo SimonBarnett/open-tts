@@ -72,13 +72,23 @@ from open_tts.viseme_sets import DEFAULT_VISEME_SET, ensure_default_viseme_set, 
 
 def _pil_to_qpixmap(img) -> QPixmap:
     rgba = img.convert("RGBA")
+    # Keep the buffer alive until QImage.copy() owns the pixels (PySide crash otherwise).
+    buf = rgba.tobytes("raw", "RGBA")
     qimg = QImage(
-        rgba.tobytes("raw", "RGBA"),
+        buf,
         rgba.width,
         rgba.height,
         QImage.Format.Format_RGBA8888,
+    ).copy()
+    return QPixmap.fromImage(qimg)
+
+
+def _is_image_path(path: Path | None) -> bool:
+    return bool(
+        path
+        and path.is_file()
+        and path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
     )
-    return QPixmap.fromImage(qimg.copy())
 
 
 class _StillWorker(QObject):
@@ -474,18 +484,24 @@ class CharacterWizard(QWidget):
     def _preview_image(self, path: Path | None) -> Path | None:
         if path is None or not path.is_file():
             return None
-        if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
+        if _is_image_path(path):
             return path
         try:
             frame = frame_at(path, 0, repo_root())
-        except FileNotFoundError:
+        except (FileNotFoundError, OSError, RuntimeError):
             return None
-        return frame if frame.is_file() else None
+        return frame if _is_image_path(frame) else None
 
     def _show_still(self, path: Path) -> None:
-        preview = self._preview_image(path) or path
+        preview = self._preview_image(path)
+        if preview is None:
+            # Never treat an MP4 (or missing ffmpeg frame) as a still — that crashed
+            # Image.open when clicking Full / Left / Right clip thumbs.
+            if _is_image_path(self._still_path):
+                self._show_frame_versions()
+            return
         self._still_path = preview
-        pix = QPixmap(str(preview)) if preview.is_file() else QPixmap()
+        pix = QPixmap(str(preview))
         self.placement_panel.set_pixmap(pix if not pix.isNull() else None)
         self.placement_panel.set_placement(self._placement)
         self._show_frame_versions()
@@ -497,9 +513,12 @@ class CharacterWizard(QWidget):
     def _placed_still_image(self):
         from PIL import Image
 
-        if not (self._still_path and self._still_path.is_file()):
+        if not _is_image_path(self._still_path):
             return None
-        img = Image.open(self._still_path).convert("RGBA")
+        try:
+            img = Image.open(self._still_path).convert("RGBA")
+        except OSError:
+            return None
         return apply_placement(img, self._placement)
 
     def _write_placed_hero(self, dest: Path) -> Path:
@@ -507,7 +526,7 @@ class CharacterWizard(QWidget):
         from PIL import Image
 
         src = self._locked_hero or self._still_path
-        if src is None or not Path(src).is_file():
+        if not _is_image_path(src):
             raise FileNotFoundError("No still to place")
         with Image.open(src) as img:
             placed = apply_placement(img, self._placement)
@@ -518,40 +537,45 @@ class CharacterWizard(QWidget):
     def _show_frame_versions(self) -> None:
         from PIL import Image
 
-        img = self._placed_still_image()
-        if img is None:
-            char_id = self.id_edit.text().strip()
-            raw = stage_source_image(
-                char_id,
-                load_registry().get(char_id),
-                extra=hero_pref_for(char_id),
-            )
-            img = apply_placement(raw, self._placement) if raw is not None else None
-        if img is None:
+        try:
+            img = self._placed_still_image()
+            if img is None:
+                char_id = self.id_edit.text().strip()
+                raw = stage_source_image(
+                    char_id,
+                    load_registry().get(char_id),
+                    extra=hero_pref_for(char_id),
+                )
+                img = apply_placement(raw, self._placement) if raw is not None else None
+            if img is None:
+                return
+            preview = (STAGE_SIZE[0] // 2, STAGE_SIZE[1] // 2)
+            # Dual = two halves of the screen. No separate "split talking" mode.
+            if is_stage_aspect(img.size):
+                full = img.resize(preview, Image.Resampling.LANCZOS)
+                left = full.crop((0, 0, preview[0] // 2, preview[1]))
+                right = full.crop((preview[0] // 2, 0, preview[0], preview[1]))
+            else:
+                full = frame_monologue(img, preview)
+                pair = compose_split_pair(img, img, preview)
+                left = pair.crop((0, 0, preview[0] // 2, preview[1]))
+                right = pair.crop((preview[0] // 2, 0, preview[0], preview[1]))
+            self.full_frame_label.setPixmap(_pil_to_qpixmap(full))
+            self.split_left_label.setPixmap(_pil_to_qpixmap(left))
+            self.split_right_label.setPixmap(_pil_to_qpixmap(right))
+            img.close()
+        except OSError:
             return
-        preview = (STAGE_SIZE[0] // 2, STAGE_SIZE[1] // 2)
-        # Dual = two halves of the screen. No separate "split talking" mode.
-        if is_stage_aspect(img.size):
-            full = img.resize(preview, Image.Resampling.LANCZOS)
-            left = full.crop((0, 0, preview[0] // 2, preview[1]))
-            right = full.crop((preview[0] // 2, 0, preview[0], preview[1]))
-        else:
-            full = frame_monologue(img, preview)
-            pair = compose_split_pair(img, img, preview)
-            left = pair.crop((0, 0, preview[0] // 2, preview[1]))
-            right = pair.crop((preview[0] // 2, 0, preview[0], preview[1]))
-        self.full_frame_label.setPixmap(_pil_to_qpixmap(full))
-        self.split_left_label.setPixmap(_pil_to_qpixmap(left))
-        self.split_right_label.setPixmap(_pil_to_qpixmap(right))
-        img.close()
 
     def _refresh_still(self) -> None:
-        if self._still_path and self._still_path.is_file():
+        if _is_image_path(self._still_path):
             self._show_still(self._still_path)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        self._refresh_still()
+        # Avoid resize → setPixmap → resize loops; only refresh when we have a still.
+        if _is_image_path(getattr(self, "_still_path", None)):
+            self._show_frame_versions()
 
     def _refresh_clip_list(self, char_id: str | None = None, selected: str | None = None) -> None:
         char_id = (char_id or self.id_edit.text()).strip()
@@ -602,8 +626,16 @@ class CharacterWizard(QWidget):
         self._stop_video()
         if path is not None:
             self._locked_video = path
-            self._show_still(path)
-            self.status_label.setText(f"{slot}: {path.name}")
+            frame = self._preview_image(path)
+            if frame is not None:
+                self._show_still(frame)
+                self.status_label.setText(f"{slot}: {path.name}")
+            else:
+                # Keep the approved hero / last still; do not open the MP4 as an image.
+                self._show_frame_versions()
+                self.status_label.setText(
+                    f"{slot}: {path.name} (preview frame unavailable — install ffmpeg to thumb)"
+                )
         else:
             self.status_label.setText(f"{slot}: no image yet — right-click to update")
 

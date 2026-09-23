@@ -311,6 +311,36 @@ class TestCharacterWizardBake(unittest.TestCase):
         self.assertTrue(wizard._face_approved)
         wizard.hide()
 
+    def test_clicking_clip_without_ffmpeg_does_not_crash(self) -> None:
+        """Half / full clip thumbs used to set _still_path to the .mp4 and crash Image.open."""
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QListWidgetItem
+
+        wizard = CharacterWizard()
+        still = LocalImageProvider().generate_still("navy jacket", None)
+        wizard.id_edit.setText("sam")
+        wizard._show_still(still)
+        with tempfile.TemporaryDirectory() as tmp:
+            mp4 = Path(tmp) / "full_sam.mp4"
+            mp4.write_bytes(b"not a real video")
+            item = QListWidgetItem("Full — ready")
+            item.setData(Qt.ItemDataRole.UserRole, "full")
+            with patch(
+                "open_tts.studio.character_wizard.resolve_clip", return_value=mp4
+            ), patch(
+                "open_tts.studio.character_wizard.frame_at",
+                side_effect=FileNotFoundError("ffmpeg"),
+            ):
+                wizard._on_clip_picked(item)
+        self.assertTrue(_is_image_or_none(wizard._still_path))
+        wizard.hide()
+
+
+def _is_image_or_none(path) -> bool:
+    if path is None:
+        return True
+    return Path(path).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+
 
 if __name__ == "__main__":
     unittest.main()
