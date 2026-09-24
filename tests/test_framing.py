@@ -96,3 +96,27 @@ class TestOriginalFraming(unittest.TestCase):
         self.assertTrue(is_stage_aspect((736, 400)))
         self.assertTrue(is_stage_aspect((368, 200)))
         self.assertFalse(is_stage_aspect((128, 128)))
+
+    def test_apply_placement_zooms_and_pans(self) -> None:
+        from open_tts.framing import Placement, apply_placement, load_placement, save_placement
+        import tempfile
+        from pathlib import Path
+
+        img = Image.new("RGBA", (100, 100), (0, 0, 0, 0))
+        for y in range(40, 60):
+            for x in range(40, 60):
+                img.putpixel((x, y), (255, 0, 0, 255))
+        identity = apply_placement(img, Placement())
+        self.assertEqual(identity.size, (100, 100))
+        zoomed = apply_placement(img, Placement(zoom=2.0, pan_x=0.0, pan_y=0.0))
+        self.assertEqual(zoomed.size, (100, 100))
+        # Centre of a 2x crop of the red square should stay red.
+        self.assertEqual(zoomed.getpixel((50, 50))[:3], (255, 0, 0))
+        with tempfile.TemporaryDirectory() as tmp:
+            hero = Path(tmp) / "face.png"
+            img.save(hero)
+            save_placement(hero, Placement(zoom=1.5, pan_x=0.25, pan_y=-0.5))
+            loaded = load_placement(hero)
+            self.assertAlmostEqual(loaded.zoom, 1.5)
+            self.assertAlmostEqual(loaded.pan_x, 0.25)
+            self.assertAlmostEqual(loaded.pan_y, -0.5)

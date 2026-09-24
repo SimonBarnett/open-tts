@@ -88,12 +88,14 @@ Kill a previous `python -m open_tts.studio` before relaunch so Simon is not look
 
 - Last selected character reloads (`.studio-prefs.json` `last_model`). **People** returns to the list. **New person** starts another.
 - **Voice** is a dropdown. Live list: `GET https://api.x.ai/v1/tts/voices` (and `GET /v1/custom-voices` when the key works). Offline fallback: `BUILTIN_TTS_VOICES` in `open_tts/tts.py` (looked up 2026-09-22, 28 built-ins). Display is `Name (voice_id)`; registry stores the id. Default API voice is `eve`.
+- **Test speech** (beside the Voice dropdown) synthesizes `TEST_SPEECH_TEXT` with the selected voice and plays it. Needs `XAI_API_KEY`. Caches under `characters/_work/voice_preview/<voice_id>.mp3`.
 - Built-in ids (do not invent others): altair, ara, atlas, aurora, carina, castor, celeste, cosmo, eve, helios, helix, iris, kepler, leo, liora, lumen, luna, lux, naksh, orion, perseus, rex, rigel, sal, sirius, ursa, zagan, zenith.
-- Still-first: **New face** / **Again** draws a cartoon still (transparent plate). **Approve face** locks `characters/heroes/<id>.png` (prefs `last_heroes` by id). Do not generate video until approved.
+- Still-first: **New face** / **Again** draws a cartoon still (transparent plate). **Move / size** the model on that still (drag + Size slider), then **Approve face** locks `characters/heroes/<id>.png` plus `.placement.json`. Do not generate video until approved.
+- Dual characters are **two halves of the screen** (Left | Right). There is no separate "split talking" mode — Screen `split` means half + half.
 - If no approved hero exists, faces come from the original grids: `characters/visemes/leo.png`, `characters/visemes/eve.png`. `resolve_hero` prefers heroes/, then those defaults.
 - No mouth-sheet grid, Bake, hero still label, or viseme combo. Each phoneme / emote / full / split is its own **VIDEO** clip under `characters/loops/` (see `open_tts/loops.py` `clip_slots`).
-- Clip list: left-click previews in **Full / Left / Right** only (stage aspect 736:400). Right-click: **Update this clip** (one slot, I2V from approved face), **Play clip**, **Stop**. Do not autoplay on enter.
-- Stage-aspect stills (loop frames) fill Full as-is; Left/Right are the left/right halves of that plate. Portrait stills are composed onto the stage. See Framing below.
+- Clip list: left-click previews in **Full / Left / Right** only (stage aspect 736:400). Right-click: **Update this clip** (one slot, I2V from the placed approved face), **Play clip**, **Stop**. Do not autoplay on enter.
+- Stage-aspect stills (loop frames) fill Full as-is; Left/Right are the left/right halves of that plate. Portrait stills are composed onto the stage after Placement. See Framing below.
 
 ### Interview tab
 
@@ -124,6 +126,8 @@ Look at the original viseme cells before inventing crops:
 - **Eve** (`characters/visemes/eve.png`): wider **half-screen interview** shot (person on one side, desk/set around them).
 
 `open_tts/framing.py` derives both from each cell: `frame_monologue` (solo / full) and `frame_half` (left/right). Video compose uses those, not a naive cover-fit of the same square into both layouts. Legacy talking-head loops on the NAS (`full_*_talking.mp4`, `dual_*_talking_*_idle.mp4`) are the same idea.
+
+**Placement:** before Approve face / clip gen, studio pan+zoom (`Placement`, `apply_placement`) sizes the model in the initial still. Saved as `characters/heroes/<id>.placement.json`. Dual = left half + right half of one plate — not a separate talking mode.
 
 Sheets are 6 x 9 cells of 128px (`768x1152`). `characters/*.png` and most of `characters/visemes/` are gitignored; keep `leo.png` / `eve.png` via the gitignore exceptions.
 

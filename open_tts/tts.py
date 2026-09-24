@@ -44,6 +44,9 @@ BUILTIN_TTS_VOICES: tuple[tuple[str, str], ...] = (
     ("zenith", "Zenith"),
 )
 
+# Short line for the Models-tab "Test speech" button.
+TEST_SPEECH_TEXT = "Hello — this is a quick voice check for the interview."
+
 _VOICES_CACHE: list[dict[str, str]] | None = None
 
 
